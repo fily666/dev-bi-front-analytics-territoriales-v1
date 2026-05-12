@@ -15,7 +15,7 @@ export function TarjetasCorporaciones() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+      <div className="grid grid-cols-1 gap-3">
         <Skeleton className="h-44 w-full" />
         <Skeleton className="h-44 w-full" />
       </div>
@@ -42,7 +42,7 @@ export function TarjetasCorporaciones() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+    <div className="grid grid-cols-1 gap-3">
       {data.map((c) => {
         const seleccionada = codigoCorporacion === c.codigoCorporacion;
         return (

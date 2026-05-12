@@ -21,7 +21,10 @@ import {
 const fmt = new Intl.NumberFormat('es-CO');
 
 export default function ComportamientoElectoralPage() {
-  const { codigoCorporacion } = useFiltrosGlobales();
+  // Selector granular: el guard sólo depende de la corporación, no de los
+  // demás filtros. Suscribirse a todo el store re-renderiza la página entera
+  // (incluido el mapa) con cada cambio de depto/municipio/partido.
+  const codigoCorporacion = useFiltrosGlobales((s) => s.codigoCorporacion);
 
   if (!codigoCorporacion) {
     return <SelectorCorporacion contextoVista="el panel electoral" />;

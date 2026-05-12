@@ -8,6 +8,7 @@ import { aDivipolaDepto, normalizarNombre } from '@/shared/domain/divipola';
 import { Skeleton } from '@/shared/ui/components/skeleton';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
+import { BotonVolverPais } from '../mapa-colombia/boton-volver-pais';
 import { COLOR_A, COLOR_B, COLOR_EMPATE, colorGanador } from './colores-comparativo';
 
 const GEO_MUNI_URL = '/colombia-municipios.geojson';
@@ -134,6 +135,7 @@ function MapaMunicipalComparativo({
   const codigoDepartamentoBd = useFiltrosGlobales((s) => s.codigoDepartamento);
   const codigoSeleccionadoBd = useFiltrosGlobales((s) => s.codigoMunicipio);
   const setMunicipio = useFiltrosGlobales((s) => s.setMunicipio);
+  const setDepartamento = useFiltrosGlobales((s) => s.setDepartamento);
 
   const codigoDepartamentoDivipola = useMemo(
     () => aDivipolaDepto(codigoDepartamentoBd),
@@ -275,6 +277,12 @@ function MapaMunicipalComparativo({
         filtroFeature={filtroFeature}
         tooltipLabel="A + B"
       />
+      <BotonVolverPais
+        onClick={() => {
+          setMunicipio(null);
+          setDepartamento(null);
+        }}
+      />
       <LeyendaComparativo resultado={resultado} />
     </>
   );
@@ -295,6 +303,7 @@ function MapaPuestoComparativo({
   const codigoDepartamentoBd = useFiltrosGlobales((s) => s.codigoDepartamento);
   const codigoMunicipioBd = useFiltrosGlobales((s) => s.codigoMunicipio);
   const setMunicipio = useFiltrosGlobales((s) => s.setMunicipio);
+  const setDepartamento = useFiltrosGlobales((s) => s.setDepartamento);
 
   const codigoDepartamentoDivipola = useMemo(
     () => aDivipolaDepto(codigoDepartamentoBd),
@@ -428,6 +437,12 @@ function MapaPuestoComparativo({
         filtroFeature={filtroFeature}
         tooltipLabel="A + B"
       />
+      <BotonVolverPais
+        onClick={() => {
+          setMunicipio(null);
+          setDepartamento(null);
+        }}
+      />
       <NotaPuestoEnMapa />
       <LeyendaComparativo resultado={resultado} />
     </>
@@ -436,7 +451,7 @@ function MapaPuestoComparativo({
 
 function NotaPuestoEnMapa() {
   return (
-    <div className="absolute right-3 top-3 z-[400] max-w-[260px] rounded-lg border border-border bg-surface/95 px-2.5 py-1.5 text-[11px] leading-snug text-foreground-muted shadow-soft backdrop-blur">
+    <div className="absolute right-3 top-14 z-[400] max-w-[260px] rounded-lg border border-border bg-surface/95 px-2.5 py-1.5 text-[11px] leading-snug text-foreground-muted shadow-soft backdrop-blur">
       Municipio resaltado con el ganador agregado. El detalle por puesto se
       consulta en la tabla.
     </div>

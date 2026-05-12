@@ -118,19 +118,21 @@ export function MapaBaseInner({
       const seleccionado = codigo === codigoSeleccionado;
       const colorOverride = coloresPorCodigo?.get(codigo);
       const fillDefault = isDark ? 'rgb(56, 68, 102)' : 'rgb(226, 230, 240)';
+      // Resaltado de selección con el rojo brand (--danger #b32118 light /
+      // #e85f54 dark) — alto contraste sobre la paleta fría del choropleth y
+      // accesible en ambos temas.
+      const accentBorder = isDark ? 'rgb(232, 95, 84)' : 'rgb(179, 33, 24)';
       return {
         fillColor:
           colorOverride ??
           (coloresPorCodigo ? fillDefault : colorScale(valor, maxValor, isDark)),
-        weight: seleccionado ? 2.5 : 0.6,
+        weight: seleccionado ? 4 : 0.6,
         color: seleccionado
-          ? isDark
-            ? 'rgb(129, 183, 230)'
-            : 'rgb(49, 63, 105)'
+          ? accentBorder
           : isDark
             ? 'rgb(84, 99, 140)'
             : 'rgb(200, 209, 226)',
-        fillOpacity: 0.85,
+        fillOpacity: seleccionado ? 1 : 0.85,
       };
     },
     [
@@ -157,6 +159,11 @@ export function MapaBaseInner({
       layer.on({
         click: () => onSeleccion(codigo),
       });
+      // Sin esto, el contorno grueso de la feature seleccionada queda
+      // parcialmente oculto por los polígonos vecinos dibujados después.
+      if (codigo === codigoSeleccionado && 'bringToFront' in layer) {
+        (layer as L.Path).bringToFront();
+      }
     },
     [
       propiedadCodigo,
@@ -165,6 +172,7 @@ export function MapaBaseInner({
       etiquetasPorCodigo,
       tooltipLabel,
       onSeleccion,
+      codigoSeleccionado,
     ],
   );
 
@@ -192,7 +200,16 @@ export function MapaBaseInner({
       minZoom={4}
       maxZoom={11}
       style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }}
+      // Zoom 100% controlado: el mapa sólo cambia de escala vía
+      // FitBoundsToData (filtros + clics). Cualquier gesto/atajo manual
+      // está deshabilitado para evitar saltos confusos de viewport.
       scrollWheelZoom={false}
+      doubleClickZoom={false}
+      touchZoom={false}
+      boxZoom={false}
+      keyboard={false}
+      zoomControl={false}
+      zoomSnap={0.25}
     >
       <TileLayer
         key={isDark ? 'dark' : 'light'}
