@@ -1,0 +1,98 @@
+import { cn } from '@/shared/ui/utils/cn';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  LucideIcon,
+  Sparkles,
+  TrendingUp,
+} from 'lucide-react';
+import { Card, CardBody, CardHeader } from './card';
+
+export type InsightTone = 'positive' | 'negative' | 'warning' | 'info';
+
+const TONE: Record<
+  InsightTone,
+  { icon: LucideIcon; iconClass: string; chipClass: string; chipLabel: string }
+> = {
+  positive: {
+    icon: CheckCircle2,
+    iconClass: 'text-success',
+    chipClass: 'bg-success-muted text-success',
+    chipLabel: 'Positivo',
+  },
+  negative: {
+    icon: TrendingUp,
+    iconClass: 'text-danger rotate-180',
+    chipClass: 'bg-danger-muted text-danger',
+    chipLabel: 'Crítico',
+  },
+  warning: {
+    icon: AlertTriangle,
+    iconClass: 'text-warning',
+    chipClass: 'bg-warning-muted text-warning',
+    chipLabel: 'Atención',
+  },
+  info: {
+    icon: Info,
+    iconClass: 'text-info',
+    chipClass: 'bg-info-muted text-info',
+    chipLabel: 'Información',
+  },
+};
+
+export interface Insight {
+  id: string;
+  tone: InsightTone;
+  title: string;
+  description: string;
+}
+
+export function InsightsPanel({ insights }: { insights: Insight[] }) {
+  return (
+    <Card>
+      <CardHeader title="Insights y alertas" icon={Sparkles} />
+      <CardBody className="space-y-3">
+        {insights.length === 0 ? (
+          <p className="py-4 text-center text-sm text-foreground-muted">
+            No hay alertas para los filtros aplicados.
+          </p>
+        ) : (
+          insights.map((i) => {
+            const config = TONE[i.tone];
+            const Icon = config.icon;
+            return (
+              <div
+                key={i.id}
+                className="flex items-start gap-3 rounded-lg border border-border bg-background/40 p-3 transition-colors hover:bg-surface-elevated"
+              >
+                <Icon
+                  size={18}
+                  className={cn('mt-0.5 shrink-0', config.iconClass)}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-sm font-semibold text-foreground">
+                      {i.title}
+                    </h4>
+                    <span
+                      className={cn(
+                        'rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                        config.chipClass,
+                      )}
+                    >
+                      {config.chipLabel}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-foreground-muted">
+                    {i.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </CardBody>
+    </Card>
+  );
+}

@@ -1,0 +1,43 @@
+import { apiClient } from '@/shared/infrastructure/http/api-client';
+import {
+  CompararTerritorialUseCase,
+  ObtenerRankingCandidatosUseCase,
+  ObtenerRankingPartidosUseCase,
+  ObtenerResumenElectoralUseCase,
+  ObtenerResumenPorCorporacionUseCase,
+  ObtenerVotosPorDepartamentoUseCase,
+  ObtenerVotosPorMunicipioUseCase,
+  ObtenerVotosPorPuestoUseCase,
+} from './application/use-cases';
+import { ElectoralHttpRepository } from './infrastructure/http/electoral.http.repository';
+
+const repository = new ElectoralHttpRepository(apiClient);
+
+export const electoralUseCases = {
+  obtenerResumen: new ObtenerResumenElectoralUseCase(repository),
+  obtenerVotosPorDepartamento: new ObtenerVotosPorDepartamentoUseCase(repository),
+  obtenerVotosPorMunicipio: new ObtenerVotosPorMunicipioUseCase(repository),
+  obtenerVotosPorPuesto: new ObtenerVotosPorPuestoUseCase(repository),
+  obtenerRankingPartidos: new ObtenerRankingPartidosUseCase(repository),
+  obtenerRankingCandidatos: new ObtenerRankingCandidatosUseCase(repository),
+  obtenerResumenPorCorporacion: new ObtenerResumenPorCorporacionUseCase(repository),
+  compararTerritorial: new CompararTerritorialUseCase(repository),
+};
+
+export type {
+  ComparativoTerritorialResultado,
+  FiltroComparativoTerritorial,
+  FiltroElectoral,
+  GanadorComparativo,
+  ItemComparativoTerritorial,
+  NivelTerritorial,
+  RankingCandidato,
+  RankingPartido,
+  ResumenCorporacion,
+  ResumenElectoral,
+  TerritorioComparativo,
+  TipoComparacionTerritorial,
+  VotosPorDepartamento,
+  VotosPorMunicipio,
+  VotosPorPuesto,
+} from './domain/entities';

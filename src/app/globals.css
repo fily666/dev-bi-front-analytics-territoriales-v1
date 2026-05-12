@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   Design tokens — base clara (Brandbook Analítica Territorial)
+   Paleta basada en el brandbook La Palovieta: superficie blanca
+   limpia, navy estructural, rojo como énfasis/CTA, yellow y sky
+   como acentos decorativos. El cream se reserva como tinte cálido
+   para tarjetas destacadas (no como fondo global).
+   - Brand: navy #313f69 (titulares, sidebar activo, foco, headings)
+   - Énfasis / CTA: red #b32118
+   - Acento cálido: yellow #efc72f
+   - Apoyo frío: sky-blue #81b7e6
+   ========================================================= */
+:root {
+  /* Fondo blanco principal; cream queda solo como sunken para callouts. */
+  --bg: 255 255 255;
+  --surface: 255 255 255;
+  --surface-elevated: 247 249 252;
+  --surface-sunken: 253 246 220;
+  --border: 226 230 240;
+  --border-strong: 200 209 226;
+
+  /* Body text en navy oscuro alineado al brand: titulares y cuerpo se ven
+     consistentemente "marca", como en las landings del brandbook. */
+  --fg: 35 45 75;
+  --fg-muted: 91 102 124;
+  --fg-subtle: 145 156 178;
+
+  /* Brand navy del brandbook (#313f69) */
+  --brand: 49 63 105;
+  --brand-fg: 255 255 255;
+  --brand-muted: 226 232 245;
+
+  /* Verde teal complementario (no aparece en marca pero necesario para estados ok) */
+  --success: 20 160 133;
+  --success-muted: 218 240 234;
+  /* Rojo brandbook (#b32118) — también usado como CTA enfático */
+  --danger: 179 33 24;
+  --danger-muted: 250 224 220;
+  /* Amarillo brandbook (#efc72f) — usado como acento cálido / estados de aviso */
+  --warning: 217 168 22;
+  --warning-muted: 253 240 195;
+  /* Sky-blue brandbook (#81b7e6) */
+  --info: 129 183 230;
+  --info-muted: 226 238 250;
+
+  --header-h: 56px;
+  --filterbar-h: 56px;
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 64px;
+}
+
+/* =========================================================
+   Design tokens — modo oscuro
+   Reinterpretación de la marca: fondo navy profundo, acentos
+   amarillo/sky para legibilidad. Mantiene la identidad sin perder
+   contraste.
+   ========================================================= */
+.dark {
+  --bg: 22 28 49;
+  --surface: 35 43 70;
+  --surface-elevated: 46 56 88;
+  --surface-sunken: 16 22 40;
+  --border: 56 68 102;
+  --border-strong: 84 99 140;
+
+  --fg: 248 240 215;
+  --fg-muted: 184 195 218;
+  --fg-subtle: 132 146 173;
+
+  /* En oscuro el brand pasa a sky para destacar sobre navy */
+  --brand: 129 183 230;
+  --brand-fg: 22 28 49;
+  --brand-muted: 49 70 110;
+
+  --success: 52 211 153;
+  --success-muted: 12 70 56;
+  /* Rojo más cálido para visibilidad en oscuro */
+  --danger: 232 95 84;
+  --danger-muted: 105 30 24;
+  --warning: 239 199 47;
+  --warning-muted: 105 78 18;
+  --info: 129 183 230;
+  --info-muted: 30 60 92;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-feature-settings: 'cv11', 'ss01';
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--border-strong));
+  border-radius: 999px;
+  border: 2px solid rgb(var(--bg));
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--fg-subtle));
+}
+
+* {
+  scrollbar-color: rgb(var(--border-strong)) transparent;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* =========================================================
+   Leaflet — integración con tema y contención de z-index
+   El mapa crea su propio contexto de apilamiento para que sus
+   panes (z-index 200-800) no se superpongan a sidebar/header.
+   ========================================================= */
+.leaflet-container {
+  font-family: inherit !important;
+  background: rgb(var(--surface)) !important;
+  isolation: isolate;
+  position: relative;
+  z-index: 0;
+}
+
+.leaflet-tooltip {
+  background-color: rgb(var(--surface-elevated)) !important;
+  color: rgb(var(--fg)) !important;
+  border: 1px solid rgb(var(--border-strong)) !important;
+  box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.12) !important;
+  border-radius: 6px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+}
+
+.leaflet-tooltip-top:before {
+  border-top-color: rgb(var(--border-strong)) !important;
+}
+
+/* Skeleton shimmer */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--surface-elevated) / 0.65),
+    transparent
+  );
+  animation: shimmer 1.6s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Utilidades de tipografía consistentes */
+@layer components {
+  .label-eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground-muted;
+  }
+  .label-section {
+    @apply text-xs font-semibold uppercase tracking-wider text-foreground-muted;
+  }
+  .num-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Wrapper estándar para mapas Leaflet: clipping + stacking context aislado. */
+  .map-wrapper {
+    @apply relative h-full w-full overflow-hidden rounded-lg;
+    isolation: isolate;
+  }
+}
