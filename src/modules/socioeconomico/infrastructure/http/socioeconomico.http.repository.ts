@@ -2,7 +2,6 @@ import { ApiClient } from '@/shared/infrastructure/http/api-client';
 import { SocioeconomicoRepositoryPort } from '../../domain/socioeconomico.repository.port';
 import {
   FiltroSocioeconomico,
-  FuenteSocioeconomica,
   IndicadorPorDepartamento,
   KpiSocioeconomico,
   ResumenDepartamentoDimension,
@@ -11,7 +10,6 @@ import {
 
 function filtroToParams(f: FiltroSocioeconomico): Record<string, string | number | undefined> {
   return {
-    fuente: f.fuente,
     fuentePublicacion: f.fuentePublicacion ?? undefined,
     codigoDepartamento: f.codigoDepartamento ?? undefined,
     dimension: f.dimension ?? undefined,
@@ -24,12 +22,8 @@ function filtroToParams(f: FiltroSocioeconomico): Record<string, string | number
 export class SocioeconomicoHttpRepository implements SocioeconomicoRepositoryPort {
   constructor(private readonly api: ApiClient) {}
 
-  listarDimensiones(
-    fuente: FuenteSocioeconomica,
-    fuentePublicacion?: string | null,
-  ): Promise<string[]> {
+  listarDimensiones(fuentePublicacion?: string | null): Promise<string[]> {
     return this.api.get<string[]>('/socioeconomico/dimensiones', {
-      fuente,
       fuentePublicacion: fuentePublicacion ?? undefined,
     });
   }

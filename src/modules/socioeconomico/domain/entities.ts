@@ -1,7 +1,4 @@
-export type FuenteSocioeconomica = 'MOE' | 'PUBLICACIONES';
-
 export interface FiltroSocioeconomico {
-  fuente: FuenteSocioeconomica;
   /** Filtra por la columna `fuente` de data_publicaciones (DNP TerriData, etc.). */
   fuentePublicacion?: string | null;
   codigoDepartamento?: string | null;

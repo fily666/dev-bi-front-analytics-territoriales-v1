@@ -50,7 +50,7 @@ src/
 │   ├── geo/                        # Departamentos, municipios, puestos
 │   ├── catalogos/                  # Corporaciones, partidos, candidatos
 │   ├── electoral/                  # Resúmenes, mapa, rankings, comparativo territorial
-│   ├── socioeconomico/             # KPIs MOE / Publicaciones, mapa de calor
+│   ├── socioeconomico/             # KPIs Publicaciones, mapa de calor
 │   ├── poblacional/                # KPIs encuestas
 │   └── home/                       # Agregador del dashboard
 └── shared/
@@ -120,7 +120,7 @@ Todos los hooks de los bounded contexts leen de este store, por lo que un cambio
 | `/electoral` | Redirige a `/electoral/comportamiento` |
 | `/electoral/comportamiento` | KPIs · mapa · panel territorial adaptativo · matriz de organizaciones con drill-down a candidatos. Requiere corporación. |
 | `/electoral/comparativo` | Comparativo pairwise A vs B (candidato o partido) + mapa choropleth + tarjetas totales + panel brechas + tabla por territorio. |
-| `/socioeconomico` | Botonera de fuentes (MOE + publicaciones) · `FiltrosCard` inline (Departamento + Categoría) · mapa de calor · tabla por depto · tendencia histórica. |
+| `/socioeconomico` | Botonera de fuentes (publicaciones) · `FiltrosCard` inline (Departamento + Dimensión + Referencia) · mapa de calor · tabla por depto · tendencia histórica. |
 | `/poblacional` | Filtros propios in-page · tendencia · radar por criterio · tabla detallada. |
 
 ### Alcance de filtros por vista

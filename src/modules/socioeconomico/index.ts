@@ -26,7 +26,6 @@ export const socioeconomicoUseCases = {
 
 export type {
   FiltroSocioeconomico,
-  FuenteSocioeconomica,
   IndicadorPorDepartamento,
   KpiSocioeconomico,
   ResumenDepartamentoDimension,

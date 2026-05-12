@@ -111,7 +111,7 @@ export function MapaCalorSocioeconomico({ filtro }: MapaCalorSocioeconomicoProps
     return (
       <EmptyState
         size="lg"
-        description={`Sin datos para esta dimensión en ${filtro.fuentePublicacion ?? filtro.fuente}.`}
+        description={`Sin datos para esta dimensión en ${filtro.fuentePublicacion ?? 'data_publicaciones'}.`}
       />
     );
   }

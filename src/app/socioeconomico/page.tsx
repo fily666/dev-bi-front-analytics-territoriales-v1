@@ -1,7 +1,6 @@
 'use client';
 
 import { useDepartamentos } from '@/modules/geo/application/hooks';
-import { FuenteSocioeconomica } from '@/modules/socioeconomico';
 import {
   useDimensionesSocioeconomicas,
   useFuentesPublicaciones,
@@ -33,9 +32,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-const TAB_MOE = 'MOE';
-const TAB_PUB_PREFIX = 'PUB:';
-
 const NIVEL_DEPARTAMENTAL = 'Departamental';
 
 function iconoParaFuente(fuente: string): LucideIcon {
@@ -54,7 +50,7 @@ interface OpcionFuente {
 }
 
 export default function SocioeconomicoPage() {
-  const [tab, setTab] = useState<string>(TAB_MOE);
+  const [fuentePublicacion, setFuentePublicacion] = useState<string | null>(null);
   const [dimension, setDimension] = useState<string | null>(null);
   const [referencia, setReferencia] = useState<string | null>(null);
   // Selectores específicos: la vista socio sólo consume el código de
@@ -65,46 +61,35 @@ export default function SocioeconomicoPage() {
   const { data: departamentos, isLoading: loadingDepartamentos } = useDepartamentos();
   const { data: fuentesPub, isLoading: loadingFuentes } = useFuentesPublicaciones();
 
-  const fuente: FuenteSocioeconomica = tab === TAB_MOE ? 'MOE' : 'PUBLICACIONES';
-  const fuentePublicacion = tab.startsWith(TAB_PUB_PREFIX)
-    ? tab.slice(TAB_PUB_PREFIX.length)
-    : null;
-  const esMoe = fuente === 'MOE';
-
-  const opcionesFuente: OpcionFuente[] = useMemo(() => {
-    const opciones: OpcionFuente[] = [
-      { value: TAB_MOE, label: 'MOE', icon: ShieldAlert },
-    ];
-    (fuentesPub ?? []).forEach((f) => {
-      opciones.push({
-        value: `${TAB_PUB_PREFIX}${f}`,
+  const opcionesFuente: OpcionFuente[] = useMemo(
+    () =>
+      (fuentesPub ?? []).map((f) => ({
+        value: f,
         label: f,
         icon: iconoParaFuente(f),
-      });
-    });
-    return opciones;
-  }, [fuentesPub]);
+      })),
+    [fuentesPub],
+  );
 
-  // Default: seleccionar la primera fuente disponible al cargar.
+  // Default: seleccionar la primera fuente publicación disponible al cargar.
   useEffect(() => {
     if (opcionesFuente.length === 0) return;
-    if (!opcionesFuente.some((o) => o.value === tab)) {
-      setTab(opcionesFuente[0].value);
+    if (!fuentePublicacion || !opcionesFuente.some((o) => o.value === fuentePublicacion)) {
+      setFuentePublicacion(opcionesFuente[0].value);
       setDimension(null);
       setReferencia(null);
     }
-  }, [opcionesFuente, tab]);
+  }, [opcionesFuente, fuentePublicacion]);
 
   // ============================================================
   //  CASCADA DE FILTROS:
-  //   Fuente → Dimensión → Referencia
+  //   Fuente publicación → Dimensión → Referencia
   //  El nivel geográfico se infiere automáticamente de la
-  //  referencia (sólo aplica para PUBLICACIONES; MOE siempre
-  //  se trata como Departamental).
+  //  referencia (Departamental por defecto cuando aplica).
   // ============================================================
 
   const { data: dimensiones, isLoading: loadingDims } =
-    useDimensionesSocioeconomicas(fuente, fuentePublicacion);
+    useDimensionesSocioeconomicas(fuentePublicacion);
 
   // Default: primera dimensión disponible.
   useEffect(() => {
@@ -117,7 +102,6 @@ export default function SocioeconomicoPage() {
 
   // Referencias dependientes de fuente + dimensión.
   const filtroReferencias = {
-    fuente,
     fuentePublicacion,
     dimension,
     codigoDepartamento: null,
@@ -137,9 +121,7 @@ export default function SocioeconomicoPage() {
   }, [referencias, referencia]);
 
   // Niveles geográficos asociados a la combinación fuente + dimensión + referencia.
-  // Sólo se consulta para PUBLICACIONES — MOE no expone este eje.
   const filtroNiveles = {
-    fuente,
     fuentePublicacion,
     dimension,
     codigoDepartamento: null,
@@ -148,17 +130,14 @@ export default function SocioeconomicoPage() {
     nivelGeografico: null,
   };
   const { data: niveles } = useNivelesGeograficosSocioeconomicos(filtroNiveles, {
-    enabled: !esMoe && !!dimension && !!referencia,
+    enabled: !!dimension && !!referencia,
   });
 
   // El nivel geográfico se infiere automáticamente de la referencia seleccionada.
-  // - MOE → siempre Departamental (no aplica).
-  // - PUBLICACIONES → se toma el primer nivel asociado a la referencia.
-  const nivelInferido: string | null = esMoe
-    ? NIVEL_DEPARTAMENTAL
-    : niveles && niveles.length > 0
-      ? niveles[0]
-      : null;
+  // Se toma el primer nivel asociado a la referencia (típicamente Departamental
+  // o Nacional para indicadores agregados).
+  const nivelInferido: string | null =
+    niveles && niveles.length > 0 ? niveles[0] : null;
 
   // El mapa coroplético sólo aplica cuando el nivel inferido es Departamental.
   // Para Nacional u otros agregados, se muestra el panel alternativo y se
@@ -170,7 +149,6 @@ export default function SocioeconomicoPage() {
   // residual del store global para que el panel agregado no termine
   // sobre-filtrado por una selección invisible al usuario.
   const filtroBase = {
-    fuente,
     fuentePublicacion,
     codigoDepartamento: usarVistaDepartamental ? (codigoDepartamento ?? null) : null,
     dimension,
@@ -180,7 +158,6 @@ export default function SocioeconomicoPage() {
   };
 
   const filtroTendencia = {
-    fuente,
     fuentePublicacion,
     codigoDepartamento: null,
     dimension,
@@ -218,14 +195,10 @@ export default function SocioeconomicoPage() {
   const filtrosActivos =
     (usarVistaDepartamental && codigoDepartamento ? 1 : 0) +
     (dimension ? 1 : 0) +
-    (!esMoe && referencia ? 1 : 0);
+    (referencia ? 1 : 0);
 
   // Cantidad de selectores visibles en la barra de filtros — guía el grid.
-  const colsFiltros: 1 | 2 | 3 = esMoe
-    ? 2
-    : usarVistaDepartamental
-      ? 3
-      : 2;
+  const colsFiltros: 1 | 2 | 3 = usarVistaDepartamental ? 3 : 2;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -236,15 +209,15 @@ export default function SocioeconomicoPage() {
       ) : (
         <div className="flex flex-wrap items-stretch justify-center gap-1.5 sm:gap-2.5">
           {opcionesFuente.map((opt) => {
-            const active = opt.value === tab;
+            const active = opt.value === fuentePublicacion;
             const Icon = opt.icon;
             return (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => {
-                  if (opt.value !== tab) {
-                    setTab(opt.value);
+                  if (opt.value !== fuentePublicacion) {
+                    setFuentePublicacion(opt.value);
                     setDimension(null);
                     setReferencia(null);
                   }
@@ -317,17 +290,15 @@ export default function SocioeconomicoPage() {
           }}
           placeholder="Seleccione una dimensión"
         />
-        {!esMoe && (
-          <SelectFiltro
-            label="Referencia"
-            value={referencia}
-            loading={loadingRefs}
-            disabled={!dimension}
-            options={(referencias ?? []).map((r) => ({ value: r, label: r }))}
-            onChange={setReferencia}
-            placeholder={dimension ? 'Seleccione una referencia' : 'Elija una dimensión'}
-          />
-        )}
+        <SelectFiltro
+          label="Referencia"
+          value={referencia}
+          loading={loadingRefs}
+          disabled={!dimension}
+          options={(referencias ?? []).map((r) => ({ value: r, label: r }))}
+          onChange={setReferencia}
+          placeholder={dimension ? 'Seleccione una referencia' : 'Elija una dimensión'}
+        />
       </FiltrosCard>
 
       {/* Visualización principal — coroplética para Departamental, panel para Nacional.

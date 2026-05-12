@@ -1,7 +1,6 @@
 import { SocioeconomicoRepositoryPort } from '../domain/socioeconomico.repository.port';
 import {
   FiltroSocioeconomico,
-  FuenteSocioeconomica,
   IndicadorPorDepartamento,
   KpiSocioeconomico,
   ResumenDepartamentoDimension,
@@ -10,11 +9,8 @@ import {
 
 export class ListarDimensionesUseCase {
   constructor(private readonly repo: SocioeconomicoRepositoryPort) {}
-  execute(
-    fuente: FuenteSocioeconomica,
-    fuentePublicacion?: string | null,
-  ): Promise<string[]> {
-    return this.repo.listarDimensiones(fuente, fuentePublicacion ?? null);
+  execute(fuentePublicacion?: string | null): Promise<string[]> {
+    return this.repo.listarDimensiones(fuentePublicacion ?? null);
   }
 }
 

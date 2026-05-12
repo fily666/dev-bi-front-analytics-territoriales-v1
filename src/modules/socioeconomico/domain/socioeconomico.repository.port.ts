@@ -1,6 +1,5 @@
 import {
   FiltroSocioeconomico,
-  FuenteSocioeconomica,
   IndicadorPorDepartamento,
   KpiSocioeconomico,
   ResumenDepartamentoDimension,
@@ -9,10 +8,7 @@ import {
 
 export interface SocioeconomicoRepositoryPort {
   /** Antes `listarCategorias`. */
-  listarDimensiones(
-    fuente: FuenteSocioeconomica,
-    fuentePublicacion?: string | null,
-  ): Promise<string[]>;
+  listarDimensiones(fuentePublicacion?: string | null): Promise<string[]>;
   listarFuentesPublicaciones(): Promise<string[]>;
   listarReferencias(filtro: FiltroSocioeconomico): Promise<string[]>;
   listarNivelesGeograficos(filtro: FiltroSocioeconomico): Promise<string[]>;

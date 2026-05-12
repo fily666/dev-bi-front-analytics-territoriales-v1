@@ -7,10 +7,7 @@ import {
   useNivelesGeograficosSocioeconomicos,
   useReferenciasSocioeconomicas,
 } from '../../application/hooks';
-import {
-  FuenteSocioeconomica,
-  IndicadorPorDepartamento,
-} from '../../domain/entities';
+import { IndicadorPorDepartamento } from '../../domain/entities';
 import { useFiltrosGlobales } from '@/shared/application/stores/filtros-globales.store';
 import { EmptyState } from '@/shared/ui/components/empty-state';
 import { Skeleton } from '@/shared/ui/components/skeleton';
@@ -39,40 +36,35 @@ const fmtPct = new Intl.NumberFormat('es-CO', {
   minimumFractionDigits: 1,
 });
 
-const FUENTE_MOE = '__MOE__';
 const NIVEL_DEPARTAMENTAL = 'Departamental';
 
 /**
- * Panel socioeconómico del Home: el usuario elige (1) fuente, (2) dimensión
- * y (sólo para publicaciones) (3) referencia. La visualización se adapta
- * automáticamente según el nivel geográfico asociado a la referencia:
+ * Panel socioeconómico del Home: el usuario elige (1) fuente publicación,
+ * (2) dimensión y (3) referencia. La visualización se adapta automáticamente
+ * según el nivel geográfico asociado a la referencia:
  *  - Departamental → top departamentos / detalle del depto seleccionado.
  *  - Nacional u otro agregado → panel nacional con KPI y tendencia.
- * MOE no expone referencia ni nivel geográfico (siempre Departamental).
  */
 export function PanelSocioHome() {
   const codigoDepartamento = useFiltrosGlobales((s) => s.codigoDepartamento);
-  const [fuenteSeleccion, setFuenteSeleccion] = useState<string>(FUENTE_MOE);
+  const [fuentePublicacion, setFuentePublicacion] = useState<string | null>(null);
   const [dimension, setDimension] = useState<string | null>(null);
   const [referencia, setReferencia] = useState<string | null>(null);
 
   const { data: fuentesPub, isLoading: loadingFuentes } = useFuentesPublicaciones();
 
-  const { fuente, fuentePublicacion } = useMemo<{
-    fuente: FuenteSocioeconomica;
-    fuentePublicacion: string | null;
-  }>(() => {
-    if (fuenteSeleccion === FUENTE_MOE) {
-      return { fuente: 'MOE', fuentePublicacion: null };
+  // Auto-selección de la primera fuente publicación al cargar.
+  useEffect(() => {
+    if (!fuentesPub || fuentesPub.length === 0) return;
+    if (!fuentePublicacion || !fuentesPub.includes(fuentePublicacion)) {
+      setFuentePublicacion(fuentesPub[0]);
+      setDimension(null);
+      setReferencia(null);
     }
-    return { fuente: 'PUBLICACIONES', fuentePublicacion: fuenteSeleccion };
-  }, [fuenteSeleccion]);
-  const esMoe = fuente === 'MOE';
+  }, [fuentesPub, fuentePublicacion]);
 
-  const { data: dimensiones, isLoading: loadingDims } = useDimensionesSocioeconomicas(
-    fuente,
-    fuentePublicacion,
-  );
+  const { data: dimensiones, isLoading: loadingDims } =
+    useDimensionesSocioeconomicas(fuentePublicacion);
 
   // Auto-selección de la primera dimensión disponible al cambiar fuente.
   useEffect(() => {
@@ -83,10 +75,9 @@ export function PanelSocioHome() {
     }
   }, [dimensiones, dimension]);
 
-  // Referencias dependientes (sólo para publicaciones).
+  // Referencias dependientes.
   const filtroRefs = useMemo(
     () => ({
-      fuente,
       fuentePublicacion,
       dimension,
       codigoDepartamento: null,
@@ -94,26 +85,24 @@ export function PanelSocioHome() {
       referencia: null,
       nivelGeografico: null,
     }),
-    [fuente, fuentePublicacion, dimension],
+    [fuentePublicacion, dimension],
   );
   const { data: referencias, isLoading: loadingRefs } = useReferenciasSocioeconomicas(
     filtroRefs,
-    { enabled: !esMoe && !!dimension },
+    { enabled: !!dimension },
   );
 
   // Auto-selección de la primera referencia disponible.
   useEffect(() => {
-    if (esMoe) return;
     if (!referencias || referencias.length === 0) return;
     if (!referencia || !referencias.includes(referencia)) {
       setReferencia(referencias[0]);
     }
-  }, [referencias, referencia, esMoe]);
+  }, [referencias, referencia]);
 
   // Niveles geográficos para inferir el tipo de vista (departamental vs nacional).
   const filtroNiv = useMemo(
     () => ({
-      fuente,
       fuentePublicacion,
       dimension,
       codigoDepartamento: null,
@@ -121,22 +110,18 @@ export function PanelSocioHome() {
       referencia,
       nivelGeografico: null,
     }),
-    [fuente, fuentePublicacion, dimension, referencia],
+    [fuentePublicacion, dimension, referencia],
   );
   const { data: niveles } = useNivelesGeograficosSocioeconomicos(filtroNiv, {
-    enabled: !esMoe && !!dimension && !!referencia,
+    enabled: !!dimension && !!referencia,
   });
 
-  const nivelInferido: string | null = esMoe
-    ? NIVEL_DEPARTAMENTAL
-    : niveles && niveles.length > 0
-      ? niveles[0]
-      : null;
+  const nivelInferido: string | null =
+    niveles && niveles.length > 0 ? niveles[0] : null;
   const usarVistaDepartamental = nivelInferido === NIVEL_DEPARTAMENTAL;
 
   const filtroDatos = useMemo(
     () => ({
-      fuente,
       fuentePublicacion,
       dimension,
       codigoDepartamento: null,
@@ -144,7 +129,7 @@ export function PanelSocioHome() {
       referencia,
       nivelGeografico: nivelInferido,
     }),
-    [fuente, fuentePublicacion, dimension, referencia, nivelInferido],
+    [fuentePublicacion, dimension, referencia, nivelInferido],
   );
 
   const { data: indicadores, isLoading: loadingInd } =
@@ -163,39 +148,30 @@ export function PanelSocioHome() {
     [codigoDepartamento, indicadores],
   );
 
-  const tituloFuente = esMoe ? 'MOE' : fuenteSeleccion;
+  const tituloFuente = fuentePublicacion ?? 'Publicaciones';
 
-  const mostrandoNacional = !esMoe && !!referencia && !usarVistaDepartamental;
+  const mostrandoNacional = !!referencia && !usarVistaDepartamental;
   const cargando = loadingInd && usarVistaDepartamental;
 
   return (
     <div className="space-y-4">
-      {/* Selector de fuente + dimensión (+ referencia si aplica) */}
-      <div
-        className={cn(
-          'grid gap-2 rounded-xl border border-border bg-surface-elevated/40 p-3 sm:gap-3',
-          esMoe
-            ? 'sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]'
-            : 'sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]',
-        )}
-      >
+      {/* Selector de fuente + dimensión + referencia */}
+      <div className="grid gap-2 rounded-xl border border-border bg-surface-elevated/40 p-3 sm:grid-cols-2 sm:gap-3 xl:grid-cols-[1fr_1fr_1fr_auto]">
         <Selector
           label="Fuente"
-          value={fuenteSeleccion}
+          value={fuentePublicacion}
           onChange={(v) => {
-            setFuenteSeleccion(v);
+            setFuentePublicacion(v);
             setDimension(null);
             setReferencia(null);
           }}
           loading={loadingFuentes}
-          options={[
-            { value: FUENTE_MOE, label: 'MOE — Misión de Observación Electoral' },
-            ...((fuentesPub ?? []).map((f) => ({
-              value: f,
-              label: `Publicación · ${f}`,
-            })) ?? []),
-          ]}
+          options={(fuentesPub ?? []).map((f) => ({
+            value: f,
+            label: `Publicación · ${f}`,
+          }))}
           icon={Filter}
+          placeholder="Seleccione…"
         />
         <Selector
           label="Dimensión / Indicador"
@@ -210,18 +186,16 @@ export function PanelSocioHome() {
           placeholder="Seleccione…"
           icon={Activity}
         />
-        {!esMoe && (
-          <Selector
-            label="Referencia"
-            value={referencia}
-            onChange={setReferencia}
-            loading={loadingRefs}
-            disabled={!dimension || !referencias || referencias.length === 0}
-            options={(referencias ?? []).map((r) => ({ value: r, label: r }))}
-            placeholder={dimension ? 'Seleccione…' : 'Elija una dimensión'}
-            icon={BookOpen}
-          />
-        )}
+        <Selector
+          label="Referencia"
+          value={referencia}
+          onChange={setReferencia}
+          loading={loadingRefs}
+          disabled={!dimension || !referencias || referencias.length === 0}
+          options={(referencias ?? []).map((r) => ({ value: r, label: r }))}
+          placeholder={dimension ? 'Seleccione…' : 'Elija una dimensión'}
+          icon={BookOpen}
+        />
         {periodo !== null && usarVistaDepartamental && (
           <span className="self-end rounded-md bg-brand-muted px-2.5 py-1 text-[11px] font-semibold text-brand">
             Período {periodo}
@@ -240,7 +214,7 @@ export function PanelSocioHome() {
           description={
             !dimension
               ? 'Seleccione una dimensión para visualizar la información.'
-              : !esMoe && !referencia
+              : !referencia
                 ? 'Seleccione una referencia para visualizar la información.'
                 : 'Sin datos para esta combinación.'
           }

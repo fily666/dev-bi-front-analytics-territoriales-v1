@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { socioeconomicoUseCases } from '../index';
-import { FiltroSocioeconomico, FuenteSocioeconomica } from '../domain/entities';
+import { FiltroSocioeconomico } from '../domain/entities';
 
 export function useFuentesPublicaciones() {
   return useQuery({
@@ -13,14 +13,10 @@ export function useFuentesPublicaciones() {
 }
 
 /** Antes `useCategoriasSocioeconomicas`. */
-export function useDimensionesSocioeconomicas(
-  fuente: FuenteSocioeconomica,
-  fuentePublicacion: string | null = null,
-) {
+export function useDimensionesSocioeconomicas(fuentePublicacion: string | null = null) {
   return useQuery({
-    queryKey: ['socioeconomico', 'dimensiones', fuente, fuentePublicacion],
-    queryFn: () =>
-      socioeconomicoUseCases.listarDimensiones.execute(fuente, fuentePublicacion),
+    queryKey: ['socioeconomico', 'dimensiones', fuentePublicacion],
+    queryFn: () => socioeconomicoUseCases.listarDimensiones.execute(fuentePublicacion),
     staleTime: 30 * 60 * 1000,
   });
 }
