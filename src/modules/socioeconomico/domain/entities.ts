@@ -1,5 +1,5 @@
 export interface FiltroSocioeconomico {
-  /** Filtra por la columna `fuente` de data_publicaciones (DNP TerriData, etc.). */
+  /** Filtra por la columna `fuente` de data_socioeconómica (DNP TerriData, etc.). */
   fuentePublicacion?: string | null;
   codigoDepartamento?: string | null;
   /** Antes `categoria`. */
