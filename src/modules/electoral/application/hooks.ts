@@ -7,6 +7,7 @@ import { electoralUseCases } from '../index';
 import {
   FiltroComparativoTerritorial,
   FiltroElectoral,
+  FiltroTerritoriosGanados,
 } from '../domain/entities';
 
 /**
@@ -113,6 +114,32 @@ export function useResumenPorCorporacion() {
   return useQuery({
     queryKey: ['electoral', 'resumen-corporaciones', dto],
     queryFn: () => electoralUseCases.obtenerResumenPorCorporacion.execute(dto),
+  });
+}
+
+export function useTerritoriosGanados(filtro: Partial<FiltroTerritoriosGanados>) {
+  const esCandidato = filtro.tipo === 'candidato';
+  const enabled = !!(
+    filtro.tipo &&
+    filtro.nivel &&
+    filtro.codigoCorporacion &&
+    filtro.codigo &&
+    (!esCandidato || !!filtro.codigoPartido)
+  );
+
+  return useQuery({
+    queryKey: [
+      'electoral',
+      'territorios-ganados',
+      filtro.tipo,
+      filtro.nivel,
+      filtro.codigoCorporacion,
+      filtro.codigo,
+      filtro.codigoPartido ?? null,
+    ],
+    queryFn: () =>
+      electoralUseCases.obtenerTerritoriosGanados.execute(filtro as FiltroTerritoriosGanados),
+    enabled,
   });
 }
 

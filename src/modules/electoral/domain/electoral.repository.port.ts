@@ -2,10 +2,12 @@ import {
   ComparativoTerritorialResultado,
   FiltroComparativoTerritorial,
   FiltroElectoral,
+  FiltroTerritoriosGanados,
   RankingCandidato,
   RankingPartido,
   ResumenCorporacion,
   ResumenElectoral,
+  TerritoriosGanadosResultado,
   VotosPorDepartamento,
   VotosPorMunicipio,
   VotosPorPuesto,
@@ -22,4 +24,7 @@ export interface ElectoralRepositoryPort {
   compararTerritorial(
     filtro: FiltroComparativoTerritorial,
   ): Promise<ComparativoTerritorialResultado>;
+  obtenerTerritoriosGanados(
+    filtro: FiltroTerritoriosGanados,
+  ): Promise<TerritoriosGanadosResultado>;
 }

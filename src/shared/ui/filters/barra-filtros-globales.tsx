@@ -7,12 +7,32 @@ import { SelectFiltro } from '@/shared/ui/components/select-filtro';
 import { Filter, X } from 'lucide-react';
 
 export interface BarraFiltrosGlobalesProps {
-  /** Si se omite, oculta el selector de partido (vista comparativo electoral). */
+  /** Oculta el selector de partido (vista comparativo electoral). */
   ocultarPartido?: boolean;
+  /**
+   * Oculta los selectores de departamento y municipio. Se usa para vistas
+   * donde el alcance territorial se decide en un panel interno (ej:
+   * Territorios ganados). El selector de partido queda con la etiqueta
+   * "Organización política".
+   */
+  ocultarTerritorio?: boolean;
+  /**
+   * Cuando `ocultarTerritorio` es true, fuerza mostrar el selector de
+   * Departamento (sin Municipio). Útil para alcances que activan el
+   * departamento condicionalmente desde un panel interno.
+   */
+  mostrarDepartamento?: boolean;
 }
 
-export function BarraFiltrosGlobales({ ocultarPartido = false }: BarraFiltrosGlobalesProps = {}) {
+export function BarraFiltrosGlobales({
+  ocultarPartido = false,
+  ocultarTerritorio = false,
+  mostrarDepartamento = false,
+}: BarraFiltrosGlobalesProps = {}) {
   const filtros = useFiltrosGlobales();
+
+  const mostrarDepto = !ocultarTerritorio || mostrarDepartamento;
+  const mostrarMuni = !ocultarTerritorio;
 
   const { data: corporaciones, isLoading: loadingCorp } = useCorporaciones();
   const { data: partidos, isLoading: loadingPart } = usePartidos(
@@ -20,15 +40,34 @@ export function BarraFiltrosGlobales({ ocultarPartido = false }: BarraFiltrosGlo
   );
   const { data: departamentos, isLoading: loadingDep } = useDepartamentos();
   const { data: municipios, isLoading: loadingMun } = useMunicipios(
-    filtros.codigoDepartamento,
+    mostrarMuni ? filtros.codigoDepartamento : null,
   );
 
   const activos = [
     filtros.codigoCorporacion,
-    filtros.codigoDepartamento,
-    filtros.codigoMunicipio,
+    mostrarDepto ? filtros.codigoDepartamento : null,
+    mostrarMuni ? filtros.codigoMunicipio : null,
     !ocultarPartido ? filtros.codigoPartido : null,
   ].filter(Boolean).length;
+
+  const limpiar = () => {
+    if (ocultarTerritorio) {
+      filtros.setCorporacion(null);
+      filtros.setPartido(null);
+      if (mostrarDepartamento) filtros.setDepartamento(null);
+    } else {
+      filtros.reset();
+    }
+  };
+
+  const visibles =
+    1 + (mostrarDepto ? 1 : 0) + (mostrarMuni ? 1 : 0) + (!ocultarPartido ? 1 : 0);
+  const gridClass =
+    visibles === 4
+      ? 'grid flex-1 grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3'
+      : visibles === 3
+        ? 'grid flex-1 grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3'
+        : 'grid flex-1 grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3';
 
   return (
     <div className="border-b border-border bg-surface/95 px-4 py-3 backdrop-blur-sm sm:px-6">
@@ -37,13 +76,7 @@ export function BarraFiltrosGlobales({ ocultarPartido = false }: BarraFiltrosGlo
           <Filter size={12} />
           Filtros
         </div>
-        <div
-          className={
-            ocultarPartido
-              ? 'grid flex-1 grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3'
-              : 'grid flex-1 grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3'
-          }
-        >
+        <div className={gridClass}>
           <SelectFiltro
             label="Corporación"
             value={filtros.codigoCorporacion}
@@ -57,33 +90,37 @@ export function BarraFiltrosGlobales({ ocultarPartido = false }: BarraFiltrosGlo
               filtros.setPartido(null);
             }}
           />
-          <SelectFiltro
-            label="Departamento"
-            value={filtros.codigoDepartamento}
-            loading={loadingDep}
-            options={(departamentos ?? []).map((d) => ({
-              value: d.codigo,
-              label: d.nombre,
-            }))}
-            onChange={filtros.setDepartamento}
-          />
-          <SelectFiltro
-            label="Municipio"
-            value={filtros.codigoMunicipio}
-            loading={loadingMun}
-            disabled={!filtros.codigoDepartamento}
-            placeholder={
-              filtros.codigoDepartamento ? 'Todos' : 'Seleccione departamento'
-            }
-            options={(municipios ?? []).map((m) => ({
-              value: m.codigo,
-              label: m.nombre,
-            }))}
-            onChange={filtros.setMunicipio}
-          />
+          {mostrarDepto && (
+            <SelectFiltro
+              label="Departamento"
+              value={filtros.codigoDepartamento}
+              loading={loadingDep}
+              options={(departamentos ?? []).map((d) => ({
+                value: d.codigo,
+                label: d.nombre,
+              }))}
+              onChange={filtros.setDepartamento}
+            />
+          )}
+          {mostrarMuni && (
+            <SelectFiltro
+              label="Municipio"
+              value={filtros.codigoMunicipio}
+              loading={loadingMun}
+              disabled={!filtros.codigoDepartamento}
+              placeholder={
+                filtros.codigoDepartamento ? 'Todos' : 'Seleccione departamento'
+              }
+              options={(municipios ?? []).map((m) => ({
+                value: m.codigo,
+                label: m.nombre,
+              }))}
+              onChange={filtros.setMunicipio}
+            />
+          )}
           {!ocultarPartido && (
             <SelectFiltro
-              label="Partido"
+              label={ocultarTerritorio ? 'Organización política' : 'Partido'}
               value={filtros.codigoPartido}
               loading={loadingPart}
               options={(partidos ?? []).map((p) => ({
@@ -97,7 +134,7 @@ export function BarraFiltrosGlobales({ ocultarPartido = false }: BarraFiltrosGlo
         {activos > 0 && (
           <button
             type="button"
-            onClick={filtros.reset}
+            onClick={limpiar}
             className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 self-end rounded-lg border border-border bg-surface px-3 text-xs font-medium text-foreground-muted transition-colors hover:border-danger/40 hover:bg-danger-muted/30 hover:text-danger"
             aria-label="Limpiar filtros globales"
           >

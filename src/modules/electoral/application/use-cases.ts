@@ -3,10 +3,12 @@ import {
   ComparativoTerritorialResultado,
   FiltroComparativoTerritorial,
   FiltroElectoral,
+  FiltroTerritoriosGanados,
   RankingCandidato,
   RankingPartido,
   ResumenCorporacion,
   ResumenElectoral,
+  TerritoriosGanadosResultado,
   VotosPorDepartamento,
   VotosPorMunicipio,
   VotosPorPuesto,
@@ -65,5 +67,12 @@ export class CompararTerritorialUseCase {
   constructor(private readonly repo: ElectoralRepositoryPort) {}
   execute(filtro: FiltroComparativoTerritorial): Promise<ComparativoTerritorialResultado> {
     return this.repo.compararTerritorial(filtro);
+  }
+}
+
+export class ObtenerTerritoriosGanadosUseCase {
+  constructor(private readonly repo: ElectoralRepositoryPort) {}
+  execute(filtro: FiltroTerritoriosGanados): Promise<TerritoriosGanadosResultado> {
+    return this.repo.obtenerTerritoriosGanados(filtro);
   }
 }

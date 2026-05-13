@@ -4,10 +4,12 @@ import {
   ComparativoTerritorialResultado,
   FiltroComparativoTerritorial,
   FiltroElectoral,
+  FiltroTerritoriosGanados,
   RankingCandidato,
   RankingPartido,
   ResumenCorporacion,
   ResumenElectoral,
+  TerritoriosGanadosResultado,
   VotosPorDepartamento,
   VotosPorMunicipio,
   VotosPorPuesto,
@@ -91,5 +93,18 @@ export class ElectoralHttpRepository implements ElectoralRepositoryPort {
         codigoPartidoB: filtro.codigoPartidoB ?? undefined,
       },
     );
+  }
+
+  obtenerTerritoriosGanados(
+    filtro: FiltroTerritoriosGanados,
+  ): Promise<TerritoriosGanadosResultado> {
+    return this.api.get<TerritoriosGanadosResultado>('/electoral/territorios-ganados', {
+      tipo: filtro.tipo,
+      nivel: filtro.nivel,
+      codigoCorporacion: filtro.codigoCorporacion,
+      codigo: filtro.codigo,
+      // Sólo se envía cuando hay valor — para tipo=partido el backend lo ignora.
+      codigoPartido: filtro.codigoPartido ?? undefined,
+    });
   }
 }

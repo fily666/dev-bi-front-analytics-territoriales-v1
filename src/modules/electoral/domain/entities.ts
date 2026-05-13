@@ -113,3 +113,39 @@ export interface ComparativoTerritorialResultado {
   totalEleccion: number;
   territorios: TerritorioComparativo[];
 }
+
+export type TipoSeleccionTerritoriosGanados = 'partido' | 'candidato';
+export type NivelAnalisisTerritoriosGanados = 'departamento' | 'municipio';
+
+export interface FiltroTerritoriosGanados {
+  tipo: TipoSeleccionTerritoriosGanados;
+  nivel: NivelAnalisisTerritoriosGanados;
+  codigoCorporacion: string;
+  codigo: string;
+  /** Obligatorio cuando tipo='candidato'. */
+  codigoPartido: string | null;
+}
+
+export interface TerritorioGanado {
+  codigoDepartamento: string;
+  codigoMunicipio: string | null;
+  nombre: string;
+  totalVotosTerritorio: number;
+  votosSeleccionado: number;
+  participacionPct: number;
+  diferencia: number;
+}
+
+export interface TerritoriosGanadosResultado {
+  tipo: TipoSeleccionTerritoriosGanados;
+  nivel: NivelAnalisisTerritoriosGanados;
+  codigo: string;
+  nombre: string;
+  codigoPartido: string | null;
+  nombrePartido: string | null;
+  totalVotosEleccion: number;
+  votosSeleccionado: number;
+  participacionPct: number;
+  totalTerritoriosGanados: number;
+  territorios: TerritorioGanado[];
+}

@@ -6,6 +6,7 @@ import {
   Home,
   LucideIcon,
   TrendingUp,
+  Trophy,
   Users,
   Vote,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ import { usePathname } from 'next/navigation';
 export type AlcanceFiltros =
   | 'global'
   | 'global-sin-partido'
+  | 'corporacion-partido'
   | 'departamento'
   | 'ninguno';
 
@@ -24,9 +26,11 @@ export interface VistaMeta {
   icon: LucideIcon;
   /**
    * Determina qué filtros transversales aplican:
-   * - 'global'        → corporación, departamento, municipio, partido
-   * - 'departamento'  → solo departamento (ej: Socioeconómico)
-   * - 'ninguno'       → la vista no usa DIVIPOLA (ej: Poblacional)
+   * - 'global'              → corporación, departamento, municipio, partido
+   * - 'global-sin-partido'  → corporación, departamento, municipio
+   * - 'corporacion-partido' → corporación + organización política (Territorios ganados)
+   * - 'departamento'        → solo departamento (ej: Socioeconómico)
+   * - 'ninguno'             → la vista no usa DIVIPOLA (ej: Poblacional)
    */
   alcanceFiltros: AlcanceFiltros;
 }
@@ -40,6 +44,14 @@ const VISTAS: VistaMeta[] = [
     descripcion: 'Comparativo pairwise por partido o candidato con desglose territorial',
     icon: GitCompareArrows,
     alcanceFiltros: 'global-sin-partido',
+  },
+  {
+    ruta: '/electoral/territorios-ganados',
+    titulo: 'Territorios ganados',
+    descripcion:
+      'Territorios donde un candidato fue el más votado, a nivel departamental o municipal',
+    icon: Trophy,
+    alcanceFiltros: 'corporacion-partido',
   },
   {
     ruta: '/electoral/comportamiento',
