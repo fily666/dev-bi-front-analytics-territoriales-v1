@@ -66,10 +66,15 @@ export function useSerieHistoricaSocioeconomica(
   });
 }
 
-export function useIndicadoresPorDepartamentoSocioeconomico(filtro: FiltroSocioeconomico) {
+export function useIndicadoresPorDepartamentoSocioeconomico(
+  filtro: FiltroSocioeconomico,
+  options: { enabled?: boolean } = {},
+) {
+  const { enabled = true } = options;
   return useQuery({
     queryKey: ['socioeconomico', 'por-departamento', filtro],
     queryFn: () => socioeconomicoUseCases.obtenerPorDepartamento.execute(filtro),
+    enabled,
   });
 }
 

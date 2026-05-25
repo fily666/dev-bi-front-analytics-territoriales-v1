@@ -82,3 +82,75 @@ export function normalizarNombre(nombre: string | null | undefined): string {
     .trim()
     .toUpperCase();
 }
+
+/**
+ * Tabla nombre normalizado → código DIVIPOLA. Sirve como fallback cuando
+ * `codigo_departamento` en la BD viene en un esquema desconocido (DIVIPOLA
+ * directo, sin padding, o incluso el nombre como texto) y el matching por
+ * código no encuentra polígono. Incluye sinónimos comunes (D.C., SAI, etc.).
+ */
+export const NOMBRE_TO_DIVIPOLA_DEPTO: Readonly<Record<string, string>> = {
+  ANTIOQUIA: '05',
+  ATLANTICO: '08',
+  'BOGOTA D C': '11',
+  'BOGOTA DC': '11',
+  BOGOTA: '11',
+  BOLIVAR: '13',
+  BOYACA: '15',
+  CALDAS: '17',
+  CAQUETA: '18',
+  CAUCA: '19',
+  CESAR: '20',
+  CORDOBA: '23',
+  CUNDINAMARCA: '25',
+  CHOCO: '27',
+  HUILA: '41',
+  'LA GUAJIRA': '44',
+  GUAJIRA: '44',
+  MAGDALENA: '47',
+  META: '50',
+  NARINO: '52',
+  'NORTE DE SANTANDER': '54',
+  QUINDIO: '63',
+  RISARALDA: '66',
+  'SAN ANDRES Y PROVIDENCIA': '88',
+  'SAN ANDRES': '88',
+  SANTANDER: '68',
+  SUCRE: '70',
+  TOLIMA: '73',
+  'VALLE DEL CAUCA': '76',
+  VALLE: '76',
+  ARAUCA: '81',
+  CASANARE: '85',
+  PUTUMAYO: '86',
+  AMAZONAS: '91',
+  GUAINIA: '94',
+  GUAVIARE: '95',
+  VAUPES: '97',
+  VICHADA: '99',
+};
+
+/**
+ * Resuelve el código DIVIPOLA preferentemente por nombre normalizado. Es
+ * a prueba de esquemas — Registraduría, DIVIPOLA o nombre crudo en el
+ * campo `codigo_departamento`. Cae al lookup por código si el nombre no
+ * está disponible o no matchea.
+ */
+export function aDivipolaDeptoFlexible(
+  codigo: string | null | undefined,
+  nombre: string | null | undefined,
+): string | null {
+  const porNombre = NOMBRE_TO_DIVIPOLA_DEPTO[normalizarNombre(nombre)];
+  if (porNombre) return porNombre;
+  return aDivipolaDepto(codigo);
+}
+
+/**
+ * Conjunto de DIVIPOLA válidos (33 entradas) — los códigos efectivamente
+ * presentes en `colombia-departamentos.geojson`. Sirve para validar que
+ * una traducción de código se resolvió a un polígono real antes de
+ * filtrar el mapa (evita dejar el viewport vacío por un código sin match).
+ */
+export const DIVIPOLAS_DEPTO_VALIDOS: ReadonlySet<string> = new Set(
+  Object.values(REGISTRADURIA_TO_DIVIPOLA_DEPTO),
+);

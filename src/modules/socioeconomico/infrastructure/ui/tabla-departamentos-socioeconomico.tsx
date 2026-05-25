@@ -2,11 +2,14 @@
 
 import { EmptyState } from '@/shared/ui/components/empty-state';
 import { Skeleton } from '@/shared/ui/components/skeleton';
+import {
+  formatearValor,
+  sufijoUnidad,
+} from '@/shared/ui/utils/formatear-valor';
+import { useMemo } from 'react';
 import { useIndicadoresPorDepartamentoSocioeconomico } from '../../application/hooks';
 import { FiltroSocioeconomico } from '../../domain/entities';
 import { badgeNivelRiesgoClass, configNivelRiesgo } from './calificacion-utils';
-
-const fmt = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
 
 export interface TablaDepartamentosSocioeconomicoProps {
   filtro: FiltroSocioeconomico;
@@ -16,6 +19,24 @@ export function TablaDepartamentosSocioeconomico({
   filtro,
 }: TablaDepartamentosSocioeconomicoProps) {
   const { data, isLoading } = useIndicadoresPorDepartamentoSocioeconomico(filtro);
+
+  // Unidad común (la primera no nula) — sirve como sufijo del header de "Valor".
+  const unidad = data?.find((d) => d.unidadMedida)?.unidadMedida ?? null;
+
+  // ¿La referencia trae múltiples series por departamento? Si es así
+  // mostramos la columna "Serie estadística" para diferenciar filas.
+  const mostrarSerie = useMemo(() => {
+    if (!data) return false;
+    const series = new Set<string>();
+    for (const d of data) {
+      if (d.serieEstadistica) series.add(d.serieEstadistica);
+      if (series.size > 1) return true;
+    }
+    return false;
+  }, [data]);
+
+  const sufijo = sufijoUnidad(unidad);
+  const headerValor = sufijo ? `Valor (${sufijo})` : 'Valor';
 
   if (!filtro.dimension) {
     return (
@@ -50,14 +71,17 @@ export function TablaDepartamentosSocioeconomico({
         <thead className="sticky top-0 z-10 border-b border-border bg-surface-elevated/95 backdrop-blur">
           <tr className="text-left label-eyebrow">
             <th className="px-3 py-2.5">Departamento</th>
-            <th className="px-3 py-2.5 text-right">Valor</th>
+            {mostrarSerie && (
+              <th className="px-3 py-2.5">Serie estadística</th>
+            )}
+            <th className="px-3 py-2.5 text-right">{headerValor}</th>
             <th className="px-3 py-2.5 text-right">Nivel de riesgo</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {data.map((d) => (
+          {data.map((d, i) => (
             <tr
-              key={d.codigoDepartamento}
+              key={`${d.codigoDepartamento}-${d.serieEstadistica ?? 'sin'}-${i}`}
               className="transition-colors hover:bg-surface-elevated/60"
             >
               <td className="px-3 py-2 font-medium text-foreground">
@@ -68,8 +92,18 @@ export function TablaDepartamentosSocioeconomico({
                   {d.departamento}
                 </span>
               </td>
+              {mostrarSerie && (
+                <td className="px-3 py-2 text-foreground-muted">
+                  <span
+                    className="block max-w-[8rem] truncate sm:max-w-[12rem]"
+                    title={d.serieEstadistica ?? '—'}
+                  >
+                    {d.serieEstadistica ?? '—'}
+                  </span>
+                </td>
+              )}
               <td className="px-3 py-2 text-right num-tabular text-foreground">
-                {fmt.format(d.valor)}
+                {formatearValor(d.valor, d.unidadMedida ?? null)}
               </td>
               <td className="px-3 py-2 text-right">
                 {d.nivelRiesgo ? (

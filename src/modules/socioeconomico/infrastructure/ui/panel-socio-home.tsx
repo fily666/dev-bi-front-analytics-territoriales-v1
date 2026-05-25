@@ -12,6 +12,7 @@ import { useFiltrosGlobales } from '@/shared/application/stores/filtros-globales
 import { EmptyState } from '@/shared/ui/components/empty-state';
 import { Skeleton } from '@/shared/ui/components/skeleton';
 import { cn } from '@/shared/ui/utils/cn';
+import { formatearValor } from '@/shared/ui/utils/formatear-valor';
 import {
   badgeNivelRiesgoClass,
   configNivelRiesgo,
@@ -27,14 +28,14 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-const fmt = new Intl.NumberFormat('es-CO', {
-  maximumFractionDigits: 2,
-  minimumFractionDigits: 0,
-});
 const fmtPct = new Intl.NumberFormat('es-CO', {
   maximumFractionDigits: 1,
   minimumFractionDigits: 1,
 });
+
+function makeFmtValor(unidad: string | null | undefined) {
+  return (v: number) => formatearValor(v, unidad);
+}
 
 const NIVEL_DEPARTAMENTAL = 'Departamental';
 
@@ -168,7 +169,7 @@ export function PanelSocioHome() {
           loading={loadingFuentes}
           options={(fuentesPub ?? []).map((f) => ({
             value: f,
-            label: `Publicación · ${f}`,
+            label: f,
           }))}
           icon={Filter}
           placeholder="Seleccione…"
@@ -250,6 +251,7 @@ function ResumenNacional({
   tituloFuente: string;
   dimension: string;
 }) {
+  const fmtValor = makeFmtValor(indicadores[0]?.unidadMedida);
   const ordenados = useMemo(
     () => [...indicadores].sort((a, b) => b.valor - a.valor),
     [indicadores],
@@ -282,7 +284,7 @@ function ResumenNacional({
             Promedio nacional
           </p>
           <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-            {fmt.format(promedio)}
+            {fmtValor(promedio)}
           </p>
           <p className="mt-1 text-xs text-foreground-muted">
             {totalDep} departamentos · {tituloFuente}
@@ -299,7 +301,7 @@ function ResumenNacional({
             </p>
             <div className="mt-1 flex items-center gap-2">
               <span className="text-2xl font-semibold tracking-tight text-foreground">
-                {fmt.format(ranking.valor)}
+                {fmtValor(ranking.valor)}
               </span>
               {ranking.nivelRiesgo && (
                 <span className={badgeNivelRiesgoClass(ranking.nivelRiesgo)}>
@@ -332,7 +334,7 @@ function ResumenNacional({
                     {d.departamento}
                   </span>
                   <span className="ml-2 shrink-0 tabular-nums text-foreground-muted">
-                    {fmt.format(d.valor)}
+                    {fmtValor(d.valor)}
                   </span>
                 </div>
                 <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-surface-elevated">
@@ -382,6 +384,7 @@ function DetalleDepartamento({
   tituloFuente: string;
   dimension: string;
 }) {
+  const fmtValor = makeFmtValor(actual.unidadMedida);
   const ordenados = useMemo(
     () => [...todos].sort((a, b) => b.valor - a.valor),
     [todos],
@@ -423,7 +426,7 @@ function DetalleDepartamento({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiBlock
           label="Valor"
-          value={fmt.format(actual.valor)}
+          value={fmtValor(actual.valor)}
           hint={`${dimension} · ${tituloFuente}`}
         />
         <KpiBlock
@@ -439,7 +442,7 @@ function DetalleDepartamento({
         <KpiBlock
           label="vs promedio"
           value={`${vsPromedio >= 0 ? '+' : ''}${fmtPct.format(vsPromedio)}%`}
-          hint={`promedio otros: ${fmt.format(promedioOtros)}`}
+          hint={`promedio otros: ${fmtValor(promedioOtros)}`}
           tone={vsPromedio > 10 ? 'danger' : vsPromedio < -10 ? 'success' : 'neutral'}
         />
       </div>
@@ -467,6 +470,7 @@ function BarrasComparativo({
   ordenados: IndicadorPorDepartamento[];
   promedio: number;
 }) {
+  const fmtValor = makeFmtValor(actual.unidadMedida);
   const top3 = ordenados
     .filter((d) => d.codigoDepartamento !== actual.codigoDepartamento)
     .slice(0, 3);
@@ -505,7 +509,7 @@ function BarrasComparativo({
                 {f.label}
               </span>
               <span className="ml-2 shrink-0 tabular-nums text-foreground">
-                {fmt.format(f.valor)}
+                {fmtValor(f.valor)}
               </span>
             </div>
             <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-surface-elevated">

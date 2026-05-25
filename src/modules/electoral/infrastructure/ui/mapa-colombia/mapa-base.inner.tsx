@@ -37,6 +37,16 @@ export interface MapaBaseInnerProps {
   coloresPorCodigo?: Map<string, string>;
   /** Línea adicional a agregar al tooltip por código (ej: calificación). */
   etiquetasPorCodigo?: Map<string, string>;
+  /**
+   * Líneas adicionales por código. Se renderizan después de `etiquetasPorCodigo`.
+   * Útil para observaciones u otros campos cualitativos largos.
+   */
+  detallesPorCodigo?: Map<string, string[]>;
+  /**
+   * Sobreescribe el formateo del valor en el tooltip (útil para unidades como
+   * porcentaje o moneda). Si se omite se usa Intl.NumberFormat es-CO.
+   */
+  formatearValor?: (valor: number) => string;
 }
 
 const formatter = new Intl.NumberFormat('es-CO');
@@ -89,6 +99,8 @@ export function MapaBaseInner({
   tooltipLabel = 'Votos',
   coloresPorCodigo,
   etiquetasPorCodigo,
+  detallesPorCodigo,
+  formatearValor,
 }: MapaBaseInnerProps) {
   // GeoJSON viene del hook compartido (cache module-level): al cambiar de
   // vista no hay re-fetch ni re-parse del archivo de ~80–600 KB.
@@ -151,11 +163,19 @@ export function MapaBaseInner({
       const nombre = String(feature.properties?.[propiedadNombre] ?? codigo);
       const valor = valoresPorCodigo.get(codigo) ?? 0;
       const etiqueta = etiquetasPorCodigo?.get(codigo);
-      const lineaExtra = etiqueta ? `<br/>${etiqueta}` : '';
-      layer.bindTooltip(
-        `<strong>${nombre}</strong><br/>${tooltipLabel}: ${formatter.format(valor)}${lineaExtra}`,
-        { sticky: true },
-      );
+      const detalles = detallesPorCodigo?.get(codigo) ?? [];
+      const valorFmt = formatearValor ? formatearValor(valor) : formatter.format(valor);
+      const lineas: string[] = [`<strong>${nombre}</strong>`];
+      lineas.push(`${tooltipLabel}: ${valorFmt}`);
+      if (etiqueta) lineas.push(etiqueta);
+      for (const d of detalles) {
+        if (d) lineas.push(`<span style="opacity:.85">${d}</span>`);
+      }
+      layer.bindTooltip(lineas.join('<br/>'), {
+        sticky: true,
+        direction: 'auto',
+        opacity: 0.97,
+      });
       layer.on({
         click: () => onSeleccion(codigo),
       });
@@ -170,6 +190,8 @@ export function MapaBaseInner({
       propiedadNombre,
       valoresPorCodigo,
       etiquetasPorCodigo,
+      detallesPorCodigo,
+      formatearValor,
       tooltipLabel,
       onSeleccion,
       codigoSeleccionado,

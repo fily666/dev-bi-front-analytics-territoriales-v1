@@ -3,10 +3,12 @@
 import { EmptyState } from '@/shared/ui/components/empty-state';
 import { Skeleton } from '@/shared/ui/components/skeleton';
 import { cn } from '@/shared/ui/utils/cn';
+import { formatearValor } from '@/shared/ui/utils/formatear-valor';
 import {
   ArrowDownRight,
   ArrowUpRight,
   Award,
+  Info,
   Minus,
   TrendingUp,
 } from 'lucide-react';
@@ -18,7 +20,6 @@ import {
 } from '../../domain/entities';
 import { badgeNivelRiesgoClass, configNivelRiesgo } from './calificacion-utils';
 
-const fmt = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
 const fmtPct = new Intl.NumberFormat('es-CO', {
   maximumFractionDigits: 1,
   minimumFractionDigits: 1,
@@ -110,6 +111,8 @@ export function DetalleDepartamentoSocio({
   }
 
   const cfg = configNivelRiesgo(principal.nivelRiesgo);
+  const unidad = principal.unidadMedida ?? null;
+  const fmt = (v: number) => formatearValor(v, unidad);
 
   // KPIs comparativos derivados.
   const vsPromedio =
@@ -161,7 +164,7 @@ export function DetalleDepartamentoSocio({
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <KpiBlock
           label="Valor"
-          value={fmt.format(principal.valor)}
+          value={fmt(principal.valor)}
           hint={principal.dimension}
         />
         <KpiBlock
@@ -176,7 +179,7 @@ export function DetalleDepartamentoSocio({
         <KpiBlock
           label="vs Promedio nacional"
           value={`${vsPromedio >= 0 ? '+' : ''}${fmtPct.format(vsPromedio)}%`}
-          hint={`Promedio: ${fmt.format(principal.promedioNacional)}`}
+          hint={`Promedio: ${fmt(principal.promedioNacional)}`}
           icon={TrendingUp}
           tone={vsPromedio > 5 ? 'danger' : vsPromedio < -5 ? 'success' : 'neutral'}
         />
@@ -193,7 +196,7 @@ export function DetalleDepartamentoSocio({
           }
           hint={
             principal.valorPeriodoAnterior != null
-              ? `Antes: ${fmt.format(principal.valorPeriodoAnterior)}`
+              ? `Antes: ${fmt(principal.valorPeriodoAnterior)}`
               : 'Sin dato anterior'
           }
           tendencia={
@@ -208,6 +211,19 @@ export function DetalleDepartamentoSocio({
           tone="neutral"
         />
       </div>
+
+      {/* Observación del último reporte del departamento. */}
+      {principal.observacion && (
+        <div className="flex items-start gap-2 rounded-lg border border-info/20 bg-info-muted/30 px-3 py-2.5 text-xs leading-snug text-foreground-muted">
+          <Info size={13} className="mt-0.5 shrink-0 text-info" />
+          <div className="min-w-0 break-words">
+            <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-info">
+              Observación · período {principal.periodo}
+            </p>
+            <p>{principal.observacion}</p>
+          </div>
+        </div>
+      )}
 
       {/* Otros indicadores (resto de dimensiones de la fuente) */}
       {otrasDimensiones.length > 0 && (
@@ -299,6 +315,7 @@ function KpiBlock({
 
 function FilaIndicador({ indicador }: { indicador: ResumenDepartamentoDimension }) {
   const cfg = configNivelRiesgo(indicador.nivelRiesgo);
+  const valorFmt = formatearValor(indicador.valor, indicador.unidadMedida ?? null);
   const percentil =
     indicador.totalDepartamentos > 0
       ? ((indicador.totalDepartamentos - indicador.posicion + 1) /
@@ -319,7 +336,7 @@ function FilaIndicador({ indicador }: { indicador: ResumenDepartamentoDimension 
             {indicador.dimension}
           </span>
           <span className="shrink-0 num-tabular text-xs font-semibold text-foreground">
-            {fmt.format(indicador.valor)}
+            {valorFmt}
           </span>
         </div>
         <div className="mt-1 flex items-center gap-2">

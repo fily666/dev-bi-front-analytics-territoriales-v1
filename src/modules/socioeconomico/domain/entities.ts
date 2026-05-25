@@ -10,6 +10,11 @@ export interface FiltroSocioeconomico {
   referencia?: string | null;
   /** Nuevo: Departamental | Nacional | … */
   nivelGeografico?: string | null;
+  /**
+   * Filtro opcional por serie estadística (criterio). Sólo aplica en indicadores
+   * nacionales donde la referencia tiene múltiples series; se aplica en el cliente.
+   */
+  seriesEstadisticas?: string[] | null;
 }
 
 export interface KpiSocioeconomico {
@@ -31,6 +36,12 @@ export interface SerieHistoricaPunto {
   /** Antes `categoria`. */
   dimension: string | null;
   valor: number;
+  /** Observación más reciente registrada para ese período. */
+  observacion?: string | null;
+  /** Unidad de medida del valor (porcentaje, monetario, …). */
+  unidadMedida?: string | null;
+  /** Serie estadística (criterio) — permite trazar una línea por serie. */
+  serieEstadistica?: string | null;
 }
 
 export interface IndicadorPorDepartamento {
@@ -48,6 +59,8 @@ export interface IndicadorPorDepartamento {
   nivelGeografico: string | null;
   referencia: string | null;
   observacion: string | null;
+  /** Migración 2026-05: unidad para formateo visual (porcentaje, monetario, índice, tasa, cantidad…). */
+  unidadMedida?: string | null;
 }
 
 /**
@@ -73,4 +86,8 @@ export interface ResumenDepartamentoDimension {
   valorPeriodoAnterior: number | null;
   /** Antes `anoAnterior`. */
   periodoAnterior: number | null;
+  /** Observación del último reporte del depto en esta dimensión. */
+  observacion?: string | null;
+  /** Unidad para formateo visual. */
+  unidadMedida?: string | null;
 }

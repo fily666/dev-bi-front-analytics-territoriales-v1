@@ -148,6 +148,14 @@ body {
   border-radius: 6px !important;
   font-size: 0.75rem !important;
   font-weight: 500 !important;
+  /* Permitir wrap por palabras (observaciones largas) en lugar del
+     `nowrap` por defecto de Leaflet que desborda el contenedor. */
+  white-space: normal !important;
+  overflow-wrap: break-word;
+  width: max-content !important;
+  max-width: min(280px, 70vw) !important;
+  line-height: 1.4;
+  padding: 8px 10px !important;
 }
 
 .leaflet-tooltip-top:before {

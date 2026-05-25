@@ -4,22 +4,25 @@ import { useDepartamentos } from '@/modules/geo/application/hooks';
 import {
   useDimensionesSocioeconomicas,
   useFuentesPublicaciones,
+  useIndicadoresPorDepartamentoSocioeconomico,
   useNivelesGeograficosSocioeconomicos,
   useReferenciasSocioeconomicas,
   useSerieHistoricaSocioeconomica,
 } from '@/modules/socioeconomico/application/hooks';
+import type { SerieHistoricaPunto } from '@/modules/socioeconomico/domain/entities';
 import { DetalleDepartamentoSocio } from '@/modules/socioeconomico/infrastructure/ui/detalle-departamento-socio';
 import { MapaCalorSocioeconomico } from '@/modules/socioeconomico/infrastructure/ui/mapa-calor-socioeconomico';
 import { PanelNacionalSocio } from '@/modules/socioeconomico/infrastructure/ui/panel-nacional-socio';
 import { TablaDepartamentosSocioeconomico } from '@/modules/socioeconomico/infrastructure/ui/tabla-departamentos-socioeconomico';
 import { useFiltrosGlobales } from '@/shared/application/stores/filtros-globales.store';
 import { Card, CardBody, CardHeader } from '@/shared/ui/components/card';
-import { EmptyState } from '@/shared/ui/components/empty-state';
 import { FiltrosCard } from '@/shared/ui/components/filtros-card';
 import { LineChart } from '@/shared/ui/components/line-chart';
+import { MultiSelectFiltro } from '@/shared/ui/components/multi-select-filtro';
 import { SelectFiltro } from '@/shared/ui/components/select-filtro';
 import { Skeleton } from '@/shared/ui/components/skeleton';
 import { cn } from '@/shared/ui/utils/cn';
+import { formatearValor, sufijoUnidad } from '@/shared/ui/utils/formatear-valor';
 import {
   BookOpen,
   FileBarChart,
@@ -30,7 +33,7 @@ import {
   Table as TableIcon,
   TrendingUp,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const NIVEL_DEPARTAMENTAL = 'Departamental';
 
@@ -53,8 +56,9 @@ export default function SocioeconomicoPage() {
   const [fuentePublicacion, setFuentePublicacion] = useState<string | null>(null);
   const [dimension, setDimension] = useState<string | null>(null);
   const [referencia, setReferencia] = useState<string | null>(null);
-  // Selectores específicos: la vista socio sólo consume el código de
-  // departamento y su setter; otros cambios del store no la afectan.
+  /** Sólo aplica para indicadores nacionales (selección múltiple de series). */
+  const [seriesSeleccionadas, setSeriesSeleccionadas] = useState<string[]>([]);
+
   const codigoDepartamento = useFiltrosGlobales((s) => s.codigoDepartamento);
   const setDepartamento = useFiltrosGlobales((s) => s.setDepartamento);
 
@@ -71,7 +75,6 @@ export default function SocioeconomicoPage() {
     [fuentesPub],
   );
 
-  // Default: seleccionar la primera fuente publicación disponible al cargar.
   useEffect(() => {
     if (opcionesFuente.length === 0) return;
     if (!fuentePublicacion || !opcionesFuente.some((o) => o.value === fuentePublicacion)) {
@@ -81,17 +84,9 @@ export default function SocioeconomicoPage() {
     }
   }, [opcionesFuente, fuentePublicacion]);
 
-  // ============================================================
-  //  CASCADA DE FILTROS:
-  //   Fuente publicación → Dimensión → Referencia
-  //  El nivel geográfico se infiere automáticamente de la
-  //  referencia (Departamental por defecto cuando aplica).
-  // ============================================================
-
   const { data: dimensiones, isLoading: loadingDims } =
     useDimensionesSocioeconomicas(fuentePublicacion);
 
-  // Default: primera dimensión disponible.
   useEffect(() => {
     if (!dimensiones || dimensiones.length === 0) return;
     if (!dimension || !dimensiones.includes(dimension)) {
@@ -100,19 +95,20 @@ export default function SocioeconomicoPage() {
     }
   }, [dimensiones, dimension]);
 
-  // Referencias dependientes de fuente + dimensión.
-  const filtroReferencias = {
-    fuentePublicacion,
-    dimension,
-    codigoDepartamento: null,
-    periodo: null,
-    referencia: null,
-    nivelGeografico: null,
-  };
+  const filtroReferencias = useMemo(
+    () => ({
+      fuentePublicacion,
+      dimension,
+      codigoDepartamento: null,
+      periodo: null,
+      referencia: null,
+      nivelGeografico: null,
+    }),
+    [fuentePublicacion, dimension],
+  );
   const { data: referencias, isLoading: loadingRefs } =
     useReferenciasSocioeconomicas(filtroReferencias, { enabled: !!dimension });
 
-  // Default: seleccionar la primera referencia disponible al cambiar dimensión.
   useEffect(() => {
     if (!referencias || referencias.length === 0) return;
     if (!referencia || !referencias.includes(referencia)) {
@@ -120,90 +116,193 @@ export default function SocioeconomicoPage() {
     }
   }, [referencias, referencia]);
 
-  // Niveles geográficos asociados a la combinación fuente + dimensión + referencia.
-  const filtroNiveles = {
-    fuentePublicacion,
-    dimension,
-    codigoDepartamento: null,
-    periodo: null,
-    referencia,
-    nivelGeografico: null,
-  };
+  const filtroNiveles = useMemo(
+    () => ({
+      fuentePublicacion,
+      dimension,
+      codigoDepartamento: null,
+      periodo: null,
+      referencia,
+      nivelGeografico: null,
+    }),
+    [fuentePublicacion, dimension, referencia],
+  );
   const { data: niveles } = useNivelesGeograficosSocioeconomicos(filtroNiveles, {
     enabled: !!dimension && !!referencia,
   });
 
-  // El nivel geográfico se infiere automáticamente de la referencia seleccionada.
-  // Se toma el primer nivel asociado a la referencia (típicamente Departamental
-  // o Nacional para indicadores agregados).
   const nivelInferido: string | null =
     niveles && niveles.length > 0 ? niveles[0] : null;
-
-  // El mapa coroplético sólo aplica cuando el nivel inferido es Departamental.
-  // Para Nacional u otros agregados, se muestra el panel alternativo y se
-  // oculta el selector de Departamento (no aplica al indicador agregado).
   const usarVistaDepartamental = nivelInferido === NIVEL_DEPARTAMENTAL;
 
-  // Filtro base que se pasa a las visualizaciones (mapa/panel/tabla).
-  // Cuando el nivel no es Departamental, ignoramos cualquier `codigoDepartamento`
-  // residual del store global para que el panel agregado no termine
-  // sobre-filtrado por una selección invisible al usuario.
-  const filtroBase = {
-    fuentePublicacion,
-    codigoDepartamento: usarVistaDepartamental ? (codigoDepartamento ?? null) : null,
-    dimension,
-    periodo: null,
-    referencia,
-    nivelGeografico: nivelInferido,
-  };
+  // Resetear series seleccionadas cuando cambia la referencia o nivel.
+  useEffect(() => {
+    setSeriesSeleccionadas([]);
+  }, [referencia, nivelInferido]);
 
-  const filtroTendencia = {
-    fuentePublicacion,
-    codigoDepartamento: null,
-    dimension,
-    periodo: null,
-    referencia,
-    nivelGeografico: nivelInferido,
-  };
+  // Filtro base que se pasa a las visualizaciones que necesitan el depto
+  // seleccionado (tabla detalle, KPIs comparativos).
+  const filtroBase = useMemo(
+    () => ({
+      fuentePublicacion,
+      codigoDepartamento: usarVistaDepartamental ? (codigoDepartamento ?? null) : null,
+      dimension,
+      periodo: null,
+      referencia,
+      nivelGeografico: nivelInferido,
+    }),
+    [
+      fuentePublicacion,
+      usarVistaDepartamental,
+      codigoDepartamento,
+      dimension,
+      referencia,
+      nivelInferido,
+    ],
+  );
 
-  const tendenciaActiva = !!dimension && opcionesFuente.length > 0;
+  // Filtro que alimenta el coroplético: ignora el depto seleccionado para
+  // que el mapa siempre coloree los 33 polígonos. La selección sólo
+  // controla el zoom/resaltado dentro del componente del mapa.
+  const filtroMapa = useMemo(
+    () => ({
+      fuentePublicacion,
+      codigoDepartamento: null,
+      dimension,
+      periodo: null,
+      referencia,
+      nivelGeografico: nivelInferido,
+    }),
+    [fuentePublicacion, dimension, referencia, nivelInferido],
+  );
+
+  const filtroTendencia = useMemo(
+    () => ({
+      fuentePublicacion,
+      // Para departamental respetamos el depto si está seleccionado; para
+      // nacional la serie histórica es global por definición.
+      codigoDepartamento: usarVistaDepartamental ? (codigoDepartamento ?? null) : null,
+      dimension,
+      periodo: null,
+      referencia,
+      nivelGeografico: nivelInferido,
+      // Si el usuario filtró series en el panel nacional, propagamos al backend
+      // para que la tendencia respete la misma selección y no muestre líneas
+      // que el usuario ocultó.
+      seriesEstadisticas:
+        !usarVistaDepartamental && seriesSeleccionadas.length > 0
+          ? seriesSeleccionadas
+          : null,
+    }),
+    [
+      fuentePublicacion,
+      usarVistaDepartamental,
+      codigoDepartamento,
+      dimension,
+      referencia,
+      nivelInferido,
+      seriesSeleccionadas,
+    ],
+  );
+
+  const tendenciaActiva = !!dimension && !!referencia && opcionesFuente.length > 0;
 
   const { data: serie, isLoading: loadingSerie } = useSerieHistoricaSocioeconomica(
     filtroTendencia,
     { enabled: tendenciaActiva },
   );
 
+  // Cargamos los registros del último período sólo para conocer las series
+  // disponibles cuando el indicador es nacional (alimenta el MultiSelect).
+  const { data: registrosNacional } = useIndicadoresPorDepartamentoSocioeconomico(
+    filtroBase,
+    { enabled: !usarVistaDepartamental && !!referencia },
+  );
+
+  const opcionesSerieEstadistica = useMemo(() => {
+    const set = new Set<string>();
+    (registrosNacional ?? []).forEach((r) => {
+      if (r.serieEstadistica) set.add(r.serieEstadistica);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [registrosNacional]);
+
+  // Unidad asociada a la combinación actual (constante por referencia).
+  const unidad =
+    (registrosNacional?.[0]?.unidadMedida ?? serie?.[0]?.unidadMedida) ?? null;
+
+  const filtroBaseConSeries = useMemo(
+    () => ({
+      ...filtroBase,
+      seriesEstadisticas: seriesSeleccionadas.length > 0 ? seriesSeleccionadas : null,
+    }),
+    [filtroBase, seriesSeleccionadas],
+  );
+
   const serieAgrupada = useMemo(() => {
-    if (!serie) return { labels: [], datasets: [] };
-    const periodos = Array.from(new Set(serie.map((p) => p.periodo))).sort();
-    const dims = Array.from(new Set(serie.map((p) => p.dimension ?? 'sin dimensión')));
-    const map = new Map<string, Map<number, number>>();
+    if (!serie || serie.length === 0) {
+      return { labels: [], datasets: [], agrupador: 'dimension' as const };
+    }
+    // Períodos ordenados numéricamente (no lexicográficos).
+    const periodos = Array.from(new Set(serie.map((p) => p.periodo))).sort(
+      (a, b) => a - b,
+    );
+    // Una referencia con múltiples series_estadistica debe trazar una línea
+    // por serie; si la data sólo distingue por dimensión (o no trae serie),
+    // usamos dimensión como agrupador.
+    const usaSeries = serie.some(
+      (p) => p.serieEstadistica && p.serieEstadistica.trim() !== '',
+    );
+    const claveDe = (p: SerieHistoricaPunto) =>
+      usaSeries
+        ? (p.serieEstadistica ?? p.dimension ?? 'Sin serie')
+        : (p.dimension ?? 'Sin dimensión');
+    const grupos = Array.from(new Set(serie.map(claveDe))).sort((a, b) =>
+      a.localeCompare(b),
+    );
+    const mapaValor = new Map<string, Map<number, number>>();
+    const mapaObs = new Map<string, Map<number, string | null>>();
     serie.forEach((p) => {
-      const c = p.dimension ?? 'sin dimensión';
-      if (!map.has(c)) map.set(c, new Map());
-      map.get(c)!.set(p.periodo, p.valor);
+      const c = claveDe(p);
+      if (!mapaValor.has(c)) mapaValor.set(c, new Map());
+      if (!mapaObs.has(c)) mapaObs.set(c, new Map());
+      mapaValor.get(c)!.set(p.periodo, p.valor);
+      mapaObs.get(c)!.set(p.periodo, p.observacion ?? null);
     });
     return {
       labels: periodos.map(String),
-      datasets: dims.slice(0, 8).map((c) => ({
+      datasets: grupos.slice(0, 8).map((c) => ({
         label: c,
-        data: periodos.map((a) => map.get(c)?.get(a) ?? 0),
+        data: periodos.map((a) => mapaValor.get(c)?.get(a) ?? 0),
+        observaciones: periodos.map((a) => mapaObs.get(c)?.get(a) ?? null),
       })),
+      agrupador: (usaSeries ? 'serie' : 'dimension') as 'serie' | 'dimension',
     };
   }, [serie]);
+
+  // Regla: la tendencia sólo se muestra cuando hay ≥2 períodos.
+  const periodosDistintos = serieAgrupada.labels.length;
+  const mostrarTendencia = tendenciaActiva && periodosDistintos > 1;
+
+  const fmtValorChart = useCallback(
+    (v: number) => formatearValor(v, unidad),
+    [unidad],
+  );
 
   const filtrosActivos =
     (usarVistaDepartamental && codigoDepartamento ? 1 : 0) +
     (dimension ? 1 : 0) +
-    (referencia ? 1 : 0);
+    (referencia ? 1 : 0) +
+    (!usarVistaDepartamental && seriesSeleccionadas.length > 0 ? 1 : 0);
 
-  // Cantidad de selectores visibles en la barra de filtros — guía el grid.
-  const colsFiltros: 1 | 2 | 3 = usarVistaDepartamental ? 3 : 2;
+  // Columnas del grid de filtros:
+  //   Departamental: Departamento + Dimensión + Referencia (3)
+  //   Nacional:      Dimensión + Referencia + Series (3)
+  const colsFiltros: 1 | 2 | 3 = 3;
 
   return (
     <div className="space-y-5 animate-fade-in">
-      {/* Barra de fuentes — botones visuales centrados. Compacta en mobile
-          para dejar más aire al contenido en pantallas estrechas. */}
+      {/* Barra de fuentes — botones visuales centrados. */}
       {loadingFuentes ? (
         <Skeleton className="h-11 w-full" />
       ) : (
@@ -253,10 +352,9 @@ export default function SocioeconomicoPage() {
         </div>
       )}
 
-      {/* Panel unificado de filtros — Nivel geográfico se infiere automáticamente.
-          Cuando el nivel inferido no es Departamental (típicamente Nacional para
-          publicaciones agregadas), ocultamos el selector de Departamento porque
-          el indicador no se desagrega geográficamente. */}
+      {/* Filtros — Nivel geográfico se infiere automáticamente.
+          Departamento: sólo en vista departamental.
+          Series estadísticas (multi): sólo en vista nacional. */}
       <FiltrosCard
         cols={colsFiltros}
         filtrosActivos={filtrosActivos}
@@ -264,6 +362,7 @@ export default function SocioeconomicoPage() {
           setDepartamento(null);
           setDimension(dimensiones && dimensiones.length > 0 ? dimensiones[0] : null);
           setReferencia(null);
+          setSeriesSeleccionadas([]);
         }}
       >
         {usarVistaDepartamental && (
@@ -299,11 +398,19 @@ export default function SocioeconomicoPage() {
           onChange={setReferencia}
           placeholder={dimension ? 'Seleccione una referencia' : 'Elija una dimensión'}
         />
+        {!usarVistaDepartamental && referencia && (
+          <MultiSelectFiltro
+            label="Serie estadística / criterio"
+            values={seriesSeleccionadas}
+            options={opcionesSerieEstadistica.map((s) => ({ value: s, label: s }))}
+            onChange={setSeriesSeleccionadas}
+            placeholder="Todas las series"
+          />
+        )}
       </FiltrosCard>
 
-      {/* Visualización principal — coroplética para Departamental, panel para Nacional.
-          Cuando el indicador es nacional ocultamos "Detalle por departamento" y damos
-          ancho completo al panel para priorizar las visualizaciones analíticas. */}
+      {/* Visualización principal — mapa coroplético para Departamental,
+          panel adaptativo para Nacional (sin mapa). */}
       <section
         className={cn(
           'grid gap-4',
@@ -312,25 +419,29 @@ export default function SocioeconomicoPage() {
       >
         <Card className={usarVistaDepartamental ? 'lg:col-span-2' : undefined}>
           <CardHeader
-            title={
-              usarVistaDepartamental
-                ? 'Distribución territorial'
-                : `Indicador ${nivelInferido ?? 'agregado'}`
-            }
+            title={referencia ?? (dimension ?? 'Indicador socioeconómico')}
             description={
-              dimension
-                ? usarVistaDepartamental
-                  ? `Nivel de riesgo · ${dimension}`
-                  : `Vista ${nivelInferido?.toLowerCase() ?? 'agregada'} · ${dimension}`
-                : undefined
+              [
+                usarVistaDepartamental
+                  ? 'Distribución territorial por nivel de riesgo'
+                  : `Vista ${nivelInferido?.toLowerCase() ?? 'agregada'}`,
+                dimension,
+                unidad ? `unidad: ${unidad}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ') || undefined
             }
             icon={usarVistaDepartamental ? MapIcon : TrendingUp}
           />
           <CardBody>
             {usarVistaDepartamental ? (
-              <MapaCalorSocioeconomico filtro={filtroBase} />
+              <MapaCalorSocioeconomico
+                filtro={filtroMapa}
+                codigoDepartamentoSeleccionado={codigoDepartamento}
+                onSeleccionarDepartamento={setDepartamento}
+              />
             ) : (
-              <PanelNacionalSocio filtro={filtroBase} />
+              <PanelNacionalSocio filtro={filtroBaseConSeries} embebido />
             )}
           </CardBody>
         </Card>
@@ -360,31 +471,42 @@ export default function SocioeconomicoPage() {
         )}
       </section>
 
-      {/* Tendencia */}
-      <Card>
-        <CardHeader
-          title="Tendencia histórica"
-          description={tendenciaActiva ? `Evolución por período · ${dimension}` : undefined}
-          icon={LineIcon}
-        />
-        <CardBody>
-          {!tendenciaActiva ? (
-            <EmptyState
-              size="sm"
-              icon={LineIcon}
-              description="Seleccione una fuente y una dimensión para visualizar la tendencia."
-            />
-          ) : loadingSerie ? (
-            <Skeleton className="h-72 w-full" />
-          ) : serieAgrupada.labels.length === 0 ? (
-            <EmptyState size="sm" description="Sin datos históricos para esta combinación." />
-          ) : (
-            <div className="h-72 sm:h-80">
-              <LineChart labels={serieAgrupada.labels} datasets={serieAgrupada.datasets} />
-            </div>
-          )}
-        </CardBody>
-      </Card>
+      {/* Tendencia — solo cuando hay más de un período disponible.
+          Si la combinación filtrada tiene 0 o 1 período, la sección entera
+          se omite (no aporta valor analítico). */}
+      {mostrarTendencia && (
+        <Card>
+          <CardHeader
+            title="Tendencia histórica"
+            description={(() => {
+              const partes = [
+                referencia,
+                serieAgrupada.agrupador === 'serie'
+                  ? `${serieAgrupada.datasets.length} ${
+                      serieAgrupada.datasets.length === 1 ? 'serie' : 'series'
+                    } · ${periodosDistintos} períodos`
+                  : `${periodosDistintos} períodos`,
+                sufijoUnidad(unidad) || (unidad ? `unidad: ${unidad}` : null),
+              ].filter(Boolean);
+              return partes.join(' · ') || undefined;
+            })()}
+            icon={LineIcon}
+          />
+          <CardBody>
+            {loadingSerie ? (
+              <Skeleton className="h-72 w-full" />
+            ) : (
+              <div className="h-72 sm:h-80">
+                <LineChart
+                  labels={serieAgrupada.labels}
+                  datasets={serieAgrupada.datasets}
+                  formatearValor={fmtValorChart}
+                />
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }

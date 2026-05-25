@@ -20,11 +20,69 @@ export interface BarChartProps {
   data: number[];
   label: string;
   horizontal?: boolean;
+  /** Textos cualitativos por barra (observaciones). */
+  observaciones?: Array<string | null | undefined>;
+  /** Formato para el valor (eje y tooltip). Si se omite usa Intl.NumberFormat es-CO. */
+  formatearValor?: (valor: number) => string;
 }
 
-export function BarChart({ labels, data, label, horizontal = false }: BarChartProps) {
+const defaultFmt = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
+
+function envolverTexto(texto: string, ancho: number): string[] {
+  const palabras = texto.split(/\s+/);
+  const lineas: string[] = [];
+  let actual = '';
+  for (const p of palabras) {
+    if (!actual) {
+      actual = p;
+    } else if (actual.length + 1 + p.length <= ancho) {
+      actual = `${actual} ${p}`;
+    } else {
+      lineas.push(actual);
+      actual = p;
+    }
+  }
+  if (actual) lineas.push(actual);
+  return lineas;
+}
+
+export function BarChart({
+  labels,
+  data,
+  label,
+  horizontal = false,
+  observaciones,
+  formatearValor,
+}: BarChartProps) {
   const isDark = useResolvedTheme() === 'dark';
   const p = getChartPalette(isDark);
+  const fmt = formatearValor ?? ((v: number) => defaultFmt.format(v));
+
+  // Configs por tipo de eje. Cuando horizontal=true, el eje de valores es X
+  // y el categórico es Y; en vertical es al revés. Mantener tipos explícitos
+  // evita que Chart.js infiera un eje lineal en el lado categórico (lo que
+  // hacía aparecer 0,1,2,3,… en lugar de los nombres de las series).
+  const valueAxis = {
+    type: 'linear' as const,
+    beginAtZero: true,
+    ticks: {
+      color: p.text,
+      font: { size: 11 },
+      callback: (value: string | number) => fmt(Number(value)),
+    },
+    grid: { color: p.grid },
+    border: { color: p.grid },
+  };
+  const categoryAxis = {
+    type: 'category' as const,
+    ticks: {
+      color: p.text,
+      autoSkip: false,
+      font: { size: 11 },
+    },
+    grid: { color: p.grid, display: false },
+    border: { color: p.grid },
+  };
 
   return (
     <Bar
@@ -55,24 +113,21 @@ export function BarChart({ labels, data, label, horizontal = false }: BarChartPr
             padding: 10,
             displayColors: false,
             callbacks: {
-              label: (ctx) =>
-                `${ctx.dataset.label}: ${new Intl.NumberFormat('es-CO').format(Number(ctx.parsed[horizontal ? 'x' : 'y']))}`,
+              label: (ctx) => {
+                const valor = Number(ctx.parsed[horizontal ? 'x' : 'y']);
+                return `${ctx.dataset.label}: ${fmt(valor)}`;
+              },
+              afterLabel: (ctx) => {
+                const obs = observaciones?.[ctx.dataIndex];
+                if (!obs) return '';
+                return [`Observación:`, ...envolverTexto(obs, 56)];
+              },
             },
           },
         },
-        scales: {
-          x: {
-            ticks: { color: p.text, autoSkip: true, maxTicksLimit: 12, font: { size: 11 } },
-            grid: { color: p.grid, display: !horizontal },
-            border: { color: p.grid },
-          },
-          y: {
-            beginAtZero: true,
-            ticks: { color: p.text, font: { size: 11 } },
-            grid: { color: p.grid, display: horizontal ? false : true },
-            border: { color: p.grid },
-          },
-        },
+        scales: horizontal
+          ? { x: valueAxis, y: categoryAxis }
+          : { x: categoryAxis, y: valueAxis },
       }}
     />
   );

@@ -29,16 +29,45 @@ ChartJS.register(
 export interface LineDataset {
   label: string;
   data: number[];
+  /** Texto cualitativo (observación) por punto, mismo orden que `data`. */
+  observaciones?: Array<string | null | undefined>;
 }
 
 export interface LineChartProps {
   labels: string[];
   datasets: LineDataset[];
+  /**
+   * Formatea el valor numérico en el tooltip y en el eje Y. Útil para inyectar
+   * el sufijo de unidad (%, COP, …). Si se omite usa Intl.NumberFormat es-CO.
+   */
+  formatearValor?: (valor: number) => string;
 }
 
-export function LineChart({ labels, datasets }: LineChartProps) {
+const defaultFmt = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
+
+/** Parte un texto en líneas de hasta `ancho` caracteres, respetando palabras. */
+function envolverTexto(texto: string, ancho: number): string[] {
+  const palabras = texto.split(/\s+/);
+  const lineas: string[] = [];
+  let actual = '';
+  for (const p of palabras) {
+    if (!actual) {
+      actual = p;
+    } else if (actual.length + 1 + p.length <= ancho) {
+      actual = `${actual} ${p}`;
+    } else {
+      lineas.push(actual);
+      actual = p;
+    }
+  }
+  if (actual) lineas.push(actual);
+  return lineas;
+}
+
+export function LineChart({ labels, datasets, formatearValor }: LineChartProps) {
   const isDark = useResolvedTheme() === 'dark';
   const p = getChartPalette(isDark);
+  const fmt = formatearValor ?? ((v: number) => defaultFmt.format(v));
 
   return (
     <Line
@@ -75,6 +104,21 @@ export function LineChart({ labels, datasets }: LineChartProps) {
             borderWidth: 1,
             padding: 10,
             usePointStyle: true,
+            // Chart.js no rompe líneas automáticamente; envolvemos el texto
+            // manualmente para que la observación se ajuste a un ancho legible.
+            boxPadding: 4,
+            callbacks: {
+              label: (ctx) => {
+                const valor = Number(ctx.parsed.y);
+                return `${ctx.dataset.label}: ${fmt(valor)}`;
+              },
+              afterLabel: (ctx) => {
+                const ds = datasets[ctx.datasetIndex];
+                const obs = ds?.observaciones?.[ctx.dataIndex];
+                if (!obs) return '';
+                return [`Observación:`, ...envolverTexto(obs, 56)];
+              },
+            },
           },
         },
         scales: {
@@ -85,7 +129,11 @@ export function LineChart({ labels, datasets }: LineChartProps) {
           },
           y: {
             beginAtZero: true,
-            ticks: { color: p.text, font: { size: 11 } },
+            ticks: {
+              color: p.text,
+              font: { size: 11 },
+              callback: (value) => fmt(Number(value)),
+            },
             grid: { color: p.grid },
             border: { color: p.grid },
           },

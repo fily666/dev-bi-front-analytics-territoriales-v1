@@ -16,6 +16,12 @@ function filtroToParams(f: FiltroSocioeconomico): Record<string, string | number
     periodo: f.periodo ?? undefined,
     referencia: f.referencia ?? undefined,
     nivelGeografico: f.nivelGeografico ?? undefined,
+    // El backend acepta CSV o param repetido; mandamos CSV para mantener
+    // el contrato escalar del ApiClient.
+    seriesEstadisticas:
+      f.seriesEstadisticas && f.seriesEstadisticas.length > 0
+        ? f.seriesEstadisticas.join(',')
+        : undefined,
   };
 }
 
