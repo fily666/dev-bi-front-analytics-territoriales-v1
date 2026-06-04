@@ -5,6 +5,7 @@ import { useFiltrosGlobales } from '@/shared/application/stores/filtros-globales
 import { useMemo } from 'react';
 import { electoralUseCases } from '../index';
 import {
+  FiltroComparativoEstadistico,
   FiltroComparativoTerritorial,
   FiltroElectoral,
   FiltroTerritoriosGanados,
@@ -139,6 +140,22 @@ export function useTerritoriosGanados(filtro: Partial<FiltroTerritoriosGanados>)
     ],
     queryFn: () =>
       electoralUseCases.obtenerTerritoriosGanados.execute(filtro as FiltroTerritoriosGanados),
+    enabled,
+  });
+}
+
+export function useCompararEstadistico(filtro: FiltroComparativoEstadistico) {
+  // Se necesita al menos 2 candidatos para que la comparación tenga sentido.
+  const enabled = filtro.candidatos.length >= 2;
+  // Clave estable e insensible al orden de selección: dos selecciones con los
+  // mismos candidatos en distinto orden comparten caché.
+  const claves = filtro.candidatos
+    .map((c) => `${c.codigoCorporacion}~${c.codigo}~${c.codigoPartido ?? ''}`)
+    .sort()
+    .join('|');
+  return useQuery({
+    queryKey: ['electoral', 'comparativo', 'estadistico', claves],
+    queryFn: () => electoralUseCases.compararEstadistico.execute(filtro),
     enabled,
   });
 }

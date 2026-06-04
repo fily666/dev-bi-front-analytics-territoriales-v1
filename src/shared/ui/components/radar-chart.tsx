@@ -23,9 +23,11 @@ export interface RadarDataset {
 export interface RadarChartProps {
   labels: string[];
   datasets: RadarDataset[];
+  /** Colores por dataset (hex/rgb). Si se omite usa la serie de la paleta. */
+  colors?: string[];
 }
 
-export function RadarChart({ labels, datasets }: RadarChartProps) {
+export function RadarChart({ labels, datasets, colors }: RadarChartProps) {
   const isDark = useResolvedTheme() === 'dark';
   const p = getChartPalette(isDark);
   const angleColor = isDark ? 'rgb(184 195 218)' : 'rgb(42 47 61)';
@@ -36,7 +38,7 @@ export function RadarChart({ labels, datasets }: RadarChartProps) {
       data={{
         labels,
         datasets: datasets.map((d, i) => {
-          const stroke = p.series[i % p.series.length];
+          const stroke = colors?.[i] ?? p.series[i % p.series.length];
           return {
             label: d.label,
             data: d.data,

@@ -1,7 +1,9 @@
 import { ApiClient } from '@/shared/infrastructure/http/api-client';
 import { ElectoralRepositoryPort } from '../../domain/electoral.repository.port';
 import {
+  ComparativoEstadisticoResultado,
   ComparativoTerritorialResultado,
+  FiltroComparativoEstadistico,
   FiltroComparativoTerritorial,
   FiltroElectoral,
   FiltroTerritoriosGanados,
@@ -93,6 +95,20 @@ export class ElectoralHttpRepository implements ElectoralRepositoryPort {
         codigoPartidoA: filtro.codigoPartidoA ?? undefined,
         codigoPartidoB: filtro.codigoPartidoB ?? undefined,
       },
+    );
+  }
+
+  compararEstadistico(
+    filtro: FiltroComparativoEstadistico,
+  ): Promise<ComparativoEstadisticoResultado> {
+    // Empaquetamos los candidatos en un único parámetro: lista separada por ";",
+    // cada uno codificado como codigoCorporacion~codigo~codigoPartido.
+    const candidatos = filtro.candidatos
+      .map((c) => `${c.codigoCorporacion}~${c.codigo}~${c.codigoPartido ?? ''}`)
+      .join(';');
+    return this.api.get<ComparativoEstadisticoResultado>(
+      '/electoral/comparativo/estadistico',
+      { candidatos },
     );
   }
 

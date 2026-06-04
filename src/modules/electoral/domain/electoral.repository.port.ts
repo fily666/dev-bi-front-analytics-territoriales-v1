@@ -1,5 +1,7 @@
 import {
+  ComparativoEstadisticoResultado,
   ComparativoTerritorialResultado,
+  FiltroComparativoEstadistico,
   FiltroComparativoTerritorial,
   FiltroElectoral,
   FiltroTerritoriosGanados,
@@ -24,6 +26,9 @@ export interface ElectoralRepositoryPort {
   compararTerritorial(
     filtro: FiltroComparativoTerritorial,
   ): Promise<ComparativoTerritorialResultado>;
+  compararEstadistico(
+    filtro: FiltroComparativoEstadistico,
+  ): Promise<ComparativoEstadisticoResultado>;
   obtenerTerritoriosGanados(
     filtro: FiltroTerritoriosGanados,
   ): Promise<TerritoriosGanadosResultado>;

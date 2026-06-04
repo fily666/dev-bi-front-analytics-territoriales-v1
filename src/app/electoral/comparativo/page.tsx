@@ -1,19 +1,71 @@
 'use client';
 
-import { useCompararTerritorial } from '@/modules/electoral/application/hooks';
+import {
+  useCompararEstadistico,
+  useCompararTerritorial,
+} from '@/modules/electoral/application/hooks';
+import type { ComparativoEstadisticoResultado } from '@/modules/electoral/domain/entities';
+import { colorCandidato } from '@/modules/electoral/infrastructure/ui/comparativo/colores-estadistico';
+import { GraficaComparativoEstadistico } from '@/modules/electoral/infrastructure/ui/comparativo/grafica-comparativo-estadistico';
 import { MapaComparativo } from '@/modules/electoral/infrastructure/ui/comparativo/mapa-comparativo';
 import { PanelEtiquetasComparativo } from '@/modules/electoral/infrastructure/ui/comparativo/panel-etiquetas';
 import { PanelSeleccionComparativo } from '@/modules/electoral/infrastructure/ui/comparativo/panel-seleccion';
+import { PanelSeleccionEstadistico } from '@/modules/electoral/infrastructure/ui/comparativo/panel-seleccion-estadistico';
+import {
+  ModoComparativo,
+  SelectorModoComparativo,
+} from '@/modules/electoral/infrastructure/ui/comparativo/selector-modo-comparativo';
+import { TablaEstadistico } from '@/modules/electoral/infrastructure/ui/comparativo/tabla-estadistico';
 import { TablaResultadosTerritorial } from '@/modules/electoral/infrastructure/ui/comparativo/tabla-resultados-territorial';
 import { TarjetasTotales } from '@/modules/electoral/infrastructure/ui/comparativo/tarjetas-totales';
 import { useFiltrosComparativo } from '@/modules/electoral/infrastructure/ui/comparativo/filtros-comparativo-store';
+import { useFiltrosEstadistico } from '@/modules/electoral/infrastructure/ui/comparativo/filtros-estadistico-store';
 import { useFiltrosGlobales } from '@/shared/application/stores/filtros-globales.store';
 import { Card, CardBody, CardHeader } from '@/shared/ui/components/card';
 import { EmptyState } from '@/shared/ui/components/empty-state';
 import { Skeleton } from '@/shared/ui/components/skeleton';
-import { ListChecks, Map as MapIcon, Table as TableIcon } from 'lucide-react';
+import {
+  BarChart3,
+  ListChecks,
+  Map as MapIcon,
+  Table as TableIcon,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+
+const fmt = new Intl.NumberFormat('es-CO');
 
 export default function ComparativoPage() {
+  const [modoVista, setModoVista] = useState<'directo' | 'estadistico'>('directo');
+  const tipo = useFiltrosComparativo((s) => s.tipo);
+  const setTipo = useFiltrosComparativo((s) => s.setTipo);
+
+  const activo: ModoComparativo = modoVista === 'estadistico' ? 'estadistico' : tipo;
+
+  const onSelect = (modo: ModoComparativo) => {
+    if (modo === 'estadistico') {
+      setModoVista('estadistico');
+    } else {
+      setModoVista('directo');
+      setTipo(modo);
+    }
+  };
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <Card>
+        <CardBody>
+          <SelectorModoComparativo activo={activo} onSelect={onSelect} />
+        </CardBody>
+      </Card>
+
+      {modoVista === 'estadistico' ? <VistaEstadistico /> : <VistaDirecta />}
+    </div>
+  );
+}
+
+// ─── Comparativo pairwise (A vs B) ────────────────────────────────────────────
+
+function VistaDirecta() {
   const codigoDepartamento = useFiltrosGlobales((s) => s.codigoDepartamento);
   const codigoMunicipio = useFiltrosGlobales((s) => s.codigoMunicipio);
   const { tipo, corpA, corpB, selA, selB } = useFiltrosComparativo();
@@ -58,12 +110,7 @@ export default function ComparativoPage() {
         ? 'Municipios'
         : 'Departamentos';
 
-  const encabezadoNivel =
-    resultado?.nivel === 'puesto'
-      ? 'Puestos'
-      : resultado?.nivel === 'municipio'
-        ? 'Municipios'
-        : 'Departamentos';
+  const encabezadoNivel = etiquetaTerritorios;
 
   const encabezadoTerritorio =
     resultado?.nivel === 'puesto'
@@ -73,7 +120,7 @@ export default function ComparativoPage() {
         : 'Departamento';
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5">
       <PanelSeleccionComparativo />
 
       {!haySeleccionCompleta ? (
@@ -144,11 +191,7 @@ export default function ComparativoPage() {
             </Card>
 
             <Card>
-              <CardHeader
-                title="Brechas y participación"
-                icon={ListChecks}
-                dense
-              />
+              <CardHeader title="Brechas y participación" icon={ListChecks} dense />
               <CardBody>
                 <PanelEtiquetasComparativo
                   resultado={resultado}
@@ -174,6 +217,125 @@ export default function ComparativoPage() {
           </Card>
         </>
       )}
+    </div>
+  );
+}
+
+// ─── Comparativo estadístico (multi-candidato) ────────────────────────────────
+
+function VistaEstadistico() {
+  const corpA = useFiltrosEstadistico((s) => s.corpA);
+  const corpB = useFiltrosEstadistico((s) => s.corpB);
+  const seleccionados = useFiltrosEstadistico((s) => s.seleccionados);
+
+  const filtro = useMemo(() => ({ candidatos: seleccionados }), [seleccionados]);
+  const { data: resultado, isLoading, isError } = useCompararEstadistico(filtro);
+
+  const ambasCorporaciones = !!(corpA && corpB);
+  const suficientesCandidatos = seleccionados.length >= 2;
+
+  return (
+    <div className="space-y-5">
+      <PanelSeleccionEstadistico />
+
+      {!ambasCorporaciones ? (
+        <Card>
+          <CardBody>
+            <EmptyState
+              tone="info"
+              title="Seleccione ambas corporaciones"
+              description="El comparativo estadístico requiere las dos corporaciones para habilitar el análisis."
+            />
+          </CardBody>
+        </Card>
+      ) : !suficientesCandidatos ? (
+        <Card>
+          <CardBody>
+            <EmptyState
+              tone="info"
+              title="Seleccione al menos 2 candidatos"
+              description="Marque uno o varios candidatos por corporación (mínimo 2 en total) para comparar sus resultados por departamento."
+            />
+          </CardBody>
+        </Card>
+      ) : isLoading ? (
+        <div className="space-y-5">
+          <Skeleton className="h-[360px] w-full" />
+          <Skeleton className="h-80 w-full" />
+        </div>
+      ) : isError ? (
+        <Card>
+          <CardBody>
+            <EmptyState
+              tone="danger"
+              title="Error al cargar el comparativo"
+              description="Vuelva a intentarlo o ajuste la selección de candidatos."
+            />
+          </CardBody>
+        </Card>
+      ) : !resultado || resultado.departamentos.length === 0 ? (
+        <Card>
+          <CardBody>
+            <EmptyState
+              title="Sin datos para la selección"
+              description="Los candidatos seleccionados no registran votos por departamento."
+            />
+          </CardBody>
+        </Card>
+      ) : (
+        <>
+          <Card>
+            <CardHeader
+              title="Visualización comparativa"
+              description="Tipo de gráfica adaptado a la cantidad de candidatos seleccionados"
+              icon={BarChart3}
+              dense
+            />
+            <CardBody className="space-y-4">
+              <ResumenCandidatos resultado={resultado} />
+              <GraficaComparativoEstadistico resultado={resultado} />
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Resultados por departamento"
+              description={`${resultado.departamentos.length} departamento${resultado.departamentos.length === 1 ? '' : 's'} · ${resultado.candidatos.length} candidatos`}
+              icon={TableIcon}
+              dense
+            />
+            <CardBody>
+              <TablaEstadistico resultado={resultado} />
+            </CardBody>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Tira-resumen de los candidatos seleccionados con su color, total y participación. */
+function ResumenCandidatos({ resultado }: { resultado: ComparativoEstadisticoResultado }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {resultado.candidatos.map((c, i) => (
+        <div
+          key={c.key}
+          className="flex items-center gap-2 rounded-lg border border-border bg-surface-elevated/50 px-3 py-1.5"
+        >
+          <span
+            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: colorCandidato(i) }}
+          />
+          <span className="max-w-[12rem] truncate text-sm font-medium text-foreground" title={c.nombre}>
+            {c.nombre}
+          </span>
+          <span className="num-tabular text-xs text-foreground-muted">
+            {fmt.format(c.totalVotos)}
+            <span className="ml-1 text-foreground-subtle">({c.participacionPct.toFixed(1)}%)</span>
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

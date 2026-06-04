@@ -15,56 +15,38 @@ import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-export interface BarChartProps {
-  labels: string[];
-  data: number[];
+export interface GroupedBarDataset {
   label: string;
+  data: number[];
+  /** Color sólido rgb(...). Si se omite usa la serie de la paleta por índice. */
+  color?: string;
+}
+
+export interface GroupedBarChartProps {
+  labels: string[];
+  datasets: GroupedBarDataset[];
   horizontal?: boolean;
-  /** Textos cualitativos por barra (observaciones). */
-  observaciones?: Array<string | null | undefined>;
-  /** Formato para el valor (eje y tooltip). Si se omite usa Intl.NumberFormat es-CO. */
+  /** Formato del valor (eje + tooltip). Por defecto Intl.NumberFormat es-CO. */
   formatearValor?: (valor: number) => string;
-  /** Colores por barra (hex/rgb). Si se omite usa el color brand único. */
-  colors?: string[];
 }
 
 const defaultFmt = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
 
-function envolverTexto(texto: string, ancho: number): string[] {
-  const palabras = texto.split(/\s+/);
-  const lineas: string[] = [];
-  let actual = '';
-  for (const p of palabras) {
-    if (!actual) {
-      actual = p;
-    } else if (actual.length + 1 + p.length <= ancho) {
-      actual = `${actual} ${p}`;
-    } else {
-      lineas.push(actual);
-      actual = p;
-    }
-  }
-  if (actual) lineas.push(actual);
-  return lineas;
-}
-
-export function BarChart({
+/**
+ * Barras agrupadas multi-serie. A diferencia de `BarChart` (un solo dataset),
+ * pinta una barra por dataset dentro de cada categoría, con leyenda. Usado por
+ * el comparativo estadístico para mostrar varios candidatos por departamento.
+ */
+export function GroupedBarChart({
   labels,
-  data,
-  label,
+  datasets,
   horizontal = false,
-  observaciones,
   formatearValor,
-  colors,
-}: BarChartProps) {
+}: GroupedBarChartProps) {
   const isDark = useResolvedTheme() === 'dark';
   const p = getChartPalette(isDark);
   const fmt = formatearValor ?? ((v: number) => defaultFmt.format(v));
 
-  // Configs por tipo de eje. Cuando horizontal=true, el eje de valores es X
-  // y el categórico es Y; en vertical es al revés. Mantener tipos explícitos
-  // evita que Chart.js infiera un eje lineal en el lado categórico (lo que
-  // hacía aparecer 0,1,2,3,… en lugar de los nombres de las series).
   const valueAxis = {
     type: 'linear' as const,
     beginAtZero: true,
@@ -78,11 +60,7 @@ export function BarChart({
   };
   const categoryAxis = {
     type: 'category' as const,
-    ticks: {
-      color: p.text,
-      autoSkip: false,
-      font: { size: 11 },
-    },
+    ticks: { color: p.text, autoSkip: false, font: { size: 11 } },
     grid: { color: p.grid, display: false },
     border: { color: p.grid },
   };
@@ -91,22 +69,24 @@ export function BarChart({
     <Bar
       data={{
         labels,
-        datasets: [
-          {
-            label,
-            data,
-            backgroundColor: colors ?? p.brand,
-            borderRadius: 6,
-            borderSkipped: false,
-          },
-        ],
+        datasets: datasets.map((d, i) => ({
+          label: d.label,
+          data: d.data,
+          backgroundColor: d.color ?? p.series[i % p.series.length],
+          borderRadius: 5,
+          borderSkipped: false,
+          maxBarThickness: 38,
+        })),
       }}
       options={{
         responsive: true,
         maintainAspectRatio: false,
         indexAxis: horizontal ? 'y' : 'x',
         plugins: {
-          legend: { display: false },
+          legend: {
+            position: 'bottom',
+            labels: { color: p.text, font: { size: 11 }, usePointStyle: true, padding: 14 },
+          },
           tooltip: {
             backgroundColor: p.tooltipBg,
             titleColor: p.tooltipTitle,
@@ -114,16 +94,11 @@ export function BarChart({
             borderColor: p.grid,
             borderWidth: 1,
             padding: 10,
-            displayColors: false,
+            usePointStyle: true,
             callbacks: {
               label: (ctx) => {
                 const valor = Number(ctx.parsed[horizontal ? 'x' : 'y']);
                 return `${ctx.dataset.label}: ${fmt(valor)}`;
-              },
-              afterLabel: (ctx) => {
-                const obs = observaciones?.[ctx.dataIndex];
-                if (!obs) return '';
-                return [`Observación:`, ...envolverTexto(obs, 56)];
               },
             },
           },

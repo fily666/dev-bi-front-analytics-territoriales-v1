@@ -129,6 +129,58 @@ export interface ComparativoTerritorialResultado {
   territorios: TerritorioComparativo[];
 }
 
+// ─── Comparativo estadístico (multi-candidato por departamento) ───────────────
+
+/** Identidad de un candidato seleccionado en el comparativo estadístico. */
+export interface CandidatoSeleccionEstadistico {
+  codigoCorporacion: string;
+  codigo: string;
+  codigoPartido: string | null;
+}
+
+export interface FiltroComparativoEstadistico {
+  candidatos: CandidatoSeleccionEstadistico[];
+}
+
+export interface ItemCandidatoEstadistico {
+  /** Clave estable codigoCorporacion~codigo~codigoPartido. */
+  key: string;
+  codigo: string;
+  codigoPartido: string | null;
+  codigoCorporacion: string;
+  nombre: string;
+  nombrePartido: string | null;
+  totalVotos: number;
+  /** % sobre el total del conjunto seleccionado (0-100). */
+  participacionPct: number;
+}
+
+export interface ValorCandidatoDepartamento {
+  key: string;
+  votos: number;
+  /** % sobre el total del conjunto en el departamento (0-100). */
+  participacionPct: number;
+}
+
+export interface DepartamentoComparativoEstadistico {
+  codigoDepartamento: string;
+  nombre: string;
+  /** Votos por candidato, en el mismo orden que `candidatos`. */
+  valores: ValorCandidatoDepartamento[];
+  totalSeleccionados: number;
+  /** Clave del candidato más votado en el departamento (null si no hay votos). */
+  liderKey: string | null;
+  /** Diferencia en votos entre el líder y el segundo más votado. */
+  diferencia: number;
+  /** Ventaja del líder sobre el segundo, en puntos porcentuales del conjunto (0-100). */
+  ventajaPct: number;
+}
+
+export interface ComparativoEstadisticoResultado {
+  candidatos: ItemCandidatoEstadistico[];
+  departamentos: DepartamentoComparativoEstadistico[];
+}
+
 export type TipoSeleccionTerritoriosGanados = 'partido' | 'candidato';
 export type NivelAnalisisTerritoriosGanados = 'departamento' | 'municipio';
 

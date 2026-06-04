@@ -15,9 +15,11 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 export interface DonutChartProps {
   labels: string[];
   data: number[];
+  /** Colores por segmento (hex/rgb). Si se omite usa la serie de la paleta. */
+  colors?: string[];
 }
 
-export function DonutChart({ labels, data }: DonutChartProps) {
+export function DonutChart({ labels, data, colors }: DonutChartProps) {
   const isDark = useResolvedTheme() === 'dark';
   const p = getChartPalette(isDark);
 
@@ -28,7 +30,9 @@ export function DonutChart({ labels, data }: DonutChartProps) {
         datasets: [
           {
             data,
-            backgroundColor: labels.map((_, i) => p.series[i % p.series.length]),
+            backgroundColor: labels.map(
+              (_, i) => colors?.[i] ?? p.series[i % p.series.length],
+            ),
             borderColor: p.surface,
             borderWidth: 2,
           },

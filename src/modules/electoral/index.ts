@@ -1,5 +1,6 @@
 import { apiClient } from '@/shared/infrastructure/http/api-client';
 import {
+  CompararEstadisticoUseCase,
   CompararTerritorialUseCase,
   ObtenerRankingCandidatosUseCase,
   ObtenerRankingPartidosUseCase,
@@ -23,15 +24,21 @@ export const electoralUseCases = {
   obtenerRankingCandidatos: new ObtenerRankingCandidatosUseCase(repository),
   obtenerResumenPorCorporacion: new ObtenerResumenPorCorporacionUseCase(repository),
   compararTerritorial: new CompararTerritorialUseCase(repository),
+  compararEstadistico: new CompararEstadisticoUseCase(repository),
   obtenerTerritoriosGanados: new ObtenerTerritoriosGanadosUseCase(repository),
 };
 
 export type {
+  CandidatoSeleccionEstadistico,
+  ComparativoEstadisticoResultado,
   ComparativoTerritorialResultado,
+  DepartamentoComparativoEstadistico,
+  FiltroComparativoEstadistico,
   FiltroComparativoTerritorial,
   FiltroElectoral,
   FiltroTerritoriosGanados,
   GanadorComparativo,
+  ItemCandidatoEstadistico,
   ItemComparativoTerritorial,
   NivelAnalisisTerritoriosGanados,
   NivelTerritorial,
@@ -44,6 +51,7 @@ export type {
   TerritoriosGanadosResultado,
   TipoComparacionTerritorial,
   TipoSeleccionTerritoriosGanados,
+  ValorCandidatoDepartamento,
   VotosPorDepartamento,
   VotosPorMunicipio,
   VotosPorPuesto,

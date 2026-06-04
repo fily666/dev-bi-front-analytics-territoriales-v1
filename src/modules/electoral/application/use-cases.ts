@@ -1,6 +1,8 @@
 import { ElectoralRepositoryPort } from '../domain/electoral.repository.port';
 import {
+  ComparativoEstadisticoResultado,
   ComparativoTerritorialResultado,
+  FiltroComparativoEstadistico,
   FiltroComparativoTerritorial,
   FiltroElectoral,
   FiltroTerritoriosGanados,
@@ -67,6 +69,13 @@ export class CompararTerritorialUseCase {
   constructor(private readonly repo: ElectoralRepositoryPort) {}
   execute(filtro: FiltroComparativoTerritorial): Promise<ComparativoTerritorialResultado> {
     return this.repo.compararTerritorial(filtro);
+  }
+}
+
+export class CompararEstadisticoUseCase {
+  constructor(private readonly repo: ElectoralRepositoryPort) {}
+  execute(filtro: FiltroComparativoEstadistico): Promise<ComparativoEstadisticoResultado> {
+    return this.repo.compararEstadistico(filtro);
   }
 }
 

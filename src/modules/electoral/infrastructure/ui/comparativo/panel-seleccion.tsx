@@ -11,7 +11,7 @@ import { useFiltrosGlobales } from '@/shared/application/stores/filtros-globales
 import { Card, CardBody } from '@/shared/ui/components/card';
 import { SelectFiltro } from '@/shared/ui/components/select-filtro';
 import { cn } from '@/shared/ui/utils/cn';
-import { ArrowLeftRight, Building2, MapPin, UserCheck } from 'lucide-react';
+import { ArrowLeftRight, MapPin } from 'lucide-react';
 import {
   mismaSeleccion,
   SeleccionComparativo,
@@ -40,7 +40,6 @@ export function PanelSeleccionComparativo() {
     corpB,
     selA,
     selB,
-    setTipo,
     setCorpA,
     setCorpB,
     setSelA,
@@ -51,26 +50,7 @@ export function PanelSeleccionComparativo() {
   return (
     <Card>
       <CardBody className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground-muted">
-              Tipo de comparación
-            </span>
-            <div className="inline-flex rounded-lg border border-border bg-surface-elevated p-0.5">
-              <BotonTipo
-                activo={tipo === 'candidato'}
-                onClick={() => setTipo('candidato')}
-                icon={<UserCheck size={13} />}
-                label="Por candidato"
-              />
-              <BotonTipo
-                activo={tipo === 'partido'}
-                onClick={() => setTipo('partido')}
-                icon={<Building2 size={13} />}
-                label="Por partido"
-              />
-            </div>
-          </div>
+        <div className="flex items-center justify-end">
           <button
             type="button"
             onClick={swap}
@@ -164,34 +144,6 @@ function AmbitoTerritorial() {
         />
       </div>
     </div>
-  );
-}
-
-function BotonTipo({
-  activo,
-  onClick,
-  icon,
-  label,
-}: {
-  activo: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-        activo
-          ? 'bg-brand text-brand-foreground shadow-soft'
-          : 'text-foreground-muted hover:bg-surface hover:text-foreground',
-      )}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
 

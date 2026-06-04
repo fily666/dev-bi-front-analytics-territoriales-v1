@@ -64,7 +64,23 @@ export function getChartPalette(isDark: boolean): ChartPalette {
   };
 }
 
-/** Devuelve un color con alfa para áreas/relleno (acepta rgb(...) sólido). */
-export function withAlpha(rgb: string, alpha: number): string {
-  return rgb.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+/**
+ * Devuelve un color con alfa para áreas/relleno. Acepta tanto `rgb(...)` sólido
+ * como hex (`#rrggbb` / `#rgb`); en ambos casos produce un `rgba(...)`.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  if (color.startsWith('#')) {
+    let h = color.slice(1);
+    if (h.length === 3) {
+      h = h
+        .split('')
+        .map((c) => c + c)
+        .join('');
+    }
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
 }
