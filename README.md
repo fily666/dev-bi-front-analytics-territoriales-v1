@@ -110,7 +110,7 @@ Todos los hooks de los bounded contexts leen de este store, por lo que un cambio
 
 ### `useFiltrosComparativo`
 
-[`src/modules/electoral/infrastructure/ui/comparativo/filtros-comparativo-store.ts`](src/modules/electoral/infrastructure/ui/comparativo/filtros-comparativo-store.ts) — store local del comparativo pairwise: `tipo: 'partido'|'candidato'`, `codigoA`, `codigoB`, más `swap()` y `reset()`. La geografía y la corporación las lee del store global.
+[`src/modules/electoral/infrastructure/ui/comparativo/filtros-comparativo-store.ts`](src/modules/electoral/infrastructure/ui/comparativo/filtros-comparativo-store.ts) — store local del comparativo pairwise: `tipo: 'partido'|'candidato'`, **`corpA`/`corpB`** (corporación por lado), `selA`/`selB`, más `setCorpA`/`setCorpB`, `swap()` y `reset()`. La geografía (depto/muni) se lee del store global (la usan los mapas para el drill-down) y se expone con selectores dentro del panel de selección del comparativo.
 
 ## Páginas
 
@@ -119,7 +119,7 @@ Todos los hooks de los bounded contexts leen de este store, por lo que un cambio
 | `/` | Dashboard ejecutivo: mapa + tarjetas corporación + ranking + paneles socio/poblacional + insights. Requiere haber elegido corporación. |
 | `/electoral` | Redirige a `/electoral/comportamiento` |
 | `/electoral/comportamiento` | KPIs · mapa · panel territorial adaptativo · matriz de organizaciones con drill-down a candidatos. Requiere corporación. |
-| `/electoral/comparativo` | Comparativo pairwise A vs B (candidato o partido) + mapa choropleth + tarjetas totales + panel brechas + tabla por territorio. |
+| `/electoral/comparativo` | Comparativo pairwise A vs B (candidato o partido) con **corporación por lado** (pueden diferir) + ámbito territorial, todo en el panel de selección (sin barra global) + mapa choropleth + tarjetas totales + panel brechas + tabla por territorio (Participación % por candidato, Diferencia y Ventaja %, sin "Total elección"). |
 | `/socioeconomico` | Botonera de fuentes (publicaciones) · `FiltrosCard` inline (Departamento + Dimensión + Referencia) · mapa de calor · tabla por depto · tendencia histórica. |
 | `/poblacional` | Filtros propios in-page · tendencia · radar por criterio · tabla detallada. |
 
@@ -130,7 +130,7 @@ Todos los hooks de los bounded contexts leen de este store, por lo que un cambio
 | Vista | `alcanceFiltros` | Barra que se renderiza |
 |---|---|---|
 | `/` y `/electoral/comportamiento` | `global` | Corporación + Departamento + Municipio + Partido |
-| `/electoral/comparativo` | `global-sin-partido` | Corporación + Departamento + Municipio (sin Partido) |
+| `/electoral/comparativo` | `ninguno` | Sin barra global — corporación por lado + ámbito territorial dentro del panel de selección |
 | `/socioeconomico`, `/poblacional` | `ninguno` | No se renderiza barra global; las vistas usan filtros propios in-page |
 
 > La rama `'departamento'` (que renderiza `BarraFiltrosDepartamento`) está cableada en `BarraFiltrosContextual` pero hoy ninguna ruta la usa — se mantiene por extensibilidad.

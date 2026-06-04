@@ -43,7 +43,9 @@ const VISTAS: VistaMeta[] = [
     titulo: 'Comparativo electoral',
     descripcion: 'Comparativo pairwise por partido o candidato con desglose territorial',
     icon: GitCompareArrows,
-    alcanceFiltros: 'global-sin-partido',
+    // Sin barra global: todos los filtros (corporación por lado + ámbito
+    // territorial) viven en el panel de selección de la propia vista.
+    alcanceFiltros: 'ninguno',
   },
   {
     ruta: '/electoral/territorios-ganados',

@@ -14,36 +14,40 @@ import { Skeleton } from '@/shared/ui/components/skeleton';
 import { ListChecks, Map as MapIcon, Table as TableIcon } from 'lucide-react';
 
 export default function ComparativoPage() {
-  const codigoCorporacion = useFiltrosGlobales((s) => s.codigoCorporacion);
   const codigoDepartamento = useFiltrosGlobales((s) => s.codigoDepartamento);
   const codigoMunicipio = useFiltrosGlobales((s) => s.codigoMunicipio);
-  const { tipo, selA, selB } = useFiltrosComparativo();
+  const { tipo, corpA, corpB, selA, selB } = useFiltrosComparativo();
 
   const filtro = {
     tipo,
     codigoA: selA?.codigo ?? undefined,
     codigoB: selB?.codigo ?? undefined,
-    codigoCorporacion: codigoCorporacion ?? undefined,
+    codigoCorporacionA: corpA ?? undefined,
+    codigoCorporacionB: corpB ?? undefined,
     codigoDepartamento: codigoDepartamento ?? null,
     codigoMunicipio: codigoMunicipio ?? null,
     codigoPartidoA: selA?.codigoPartido ?? null,
     codigoPartidoB: selB?.codigoPartido ?? null,
   };
 
-  // Para 'candidato' la identidad es (codigo, codigoPartido). Para 'partido' basta el código.
+  // Con corporaciones distintas, el mismo código/partido es una comparación
+  // válida (mismo candidato en dos procesos). Sólo exigimos diferencia de ítem
+  // cuando ambos lados comparten corporación.
+  const distintaCorporacion = !!(corpA && corpB && corpA !== corpB);
   const sonDistintos = !!(
     selA &&
     selB &&
-    (tipo === 'candidato'
-      ? selA.codigo !== selB.codigo || selA.codigoPartido !== selB.codigoPartido
-      : selA.codigo !== selB.codigo)
+    (distintaCorporacion ||
+      (tipo === 'candidato'
+        ? selA.codigo !== selB.codigo || selA.codigoPartido !== selB.codigoPartido
+        : selA.codigo !== selB.codigo))
   );
   // Para candidatos exigimos también codigoPartido en ambos lados.
   const seleccionValida =
     tipo === 'partido'
       ? sonDistintos
       : sonDistintos && !!selA?.codigoPartido && !!selB?.codigoPartido;
-  const haySeleccionCompleta = !!(codigoCorporacion && seleccionValida);
+  const haySeleccionCompleta = !!(corpA && corpB && seleccionValida);
 
   const { data: resultado, isLoading, isError } = useCompararTerritorial(filtro);
 
@@ -78,7 +82,7 @@ export default function ComparativoPage() {
             <EmptyState
               tone="info"
               title="Configure el comparativo"
-              description="Seleccione una corporación en los filtros generales y los dos ítems a comparar."
+              description="Seleccione la corporación y el ítem de cada lado. Puede combinar corporaciones distintas para comparar entre elecciones."
             />
           </CardBody>
         </Card>

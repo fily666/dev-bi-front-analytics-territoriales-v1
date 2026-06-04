@@ -85,7 +85,8 @@ export class ElectoralHttpRepository implements ElectoralRepositoryPort {
         tipo: filtro.tipo,
         codigoA: filtro.codigoA,
         codigoB: filtro.codigoB,
-        codigoCorporacion: filtro.codigoCorporacion,
+        codigoCorporacionA: filtro.codigoCorporacionA,
+        codigoCorporacionB: filtro.codigoCorporacionB,
         codigoDepartamento: filtro.codigoDepartamento ?? undefined,
         codigoMunicipio: filtro.codigoMunicipio ?? undefined,
         // Sólo se envían cuando hay valor — para tipo=partido el backend los ignora.

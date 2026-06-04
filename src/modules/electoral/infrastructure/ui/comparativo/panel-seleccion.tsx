@@ -2,15 +2,16 @@
 
 import {
   useCandidatos,
+  useCorporaciones,
   usePartidos,
 } from '@/modules/catalogos/application/hooks';
 import type { TipoComparacionTerritorial } from '@/modules/electoral/domain/entities';
+import { useDepartamentos, useMunicipios } from '@/modules/geo/application/hooks';
 import { useFiltrosGlobales } from '@/shared/application/stores/filtros-globales.store';
 import { Card, CardBody } from '@/shared/ui/components/card';
-import { EmptyState } from '@/shared/ui/components/empty-state';
 import { SelectFiltro } from '@/shared/ui/components/select-filtro';
 import { cn } from '@/shared/ui/utils/cn';
-import { ArrowLeftRight, Building2, UserCheck } from 'lucide-react';
+import { ArrowLeftRight, Building2, MapPin, UserCheck } from 'lucide-react';
 import {
   mismaSeleccion,
   SeleccionComparativo,
@@ -33,30 +34,19 @@ const decodeCandidato = (value: string): SeleccionComparativo => {
 };
 
 export function PanelSeleccionComparativo() {
-  const codigoCorporacion = useFiltrosGlobales((s) => s.codigoCorporacion);
   const {
     tipo,
+    corpA,
+    corpB,
     selA,
     selB,
     setTipo,
+    setCorpA,
+    setCorpB,
     setSelA,
     setSelB,
     swap,
   } = useFiltrosComparativo();
-
-  if (!codigoCorporacion) {
-    return (
-      <Card>
-        <CardBody>
-          <EmptyState
-            tone="info"
-            title="Seleccione una corporación"
-            description="El comparativo electoral requiere acotar el contexto a una corporación desde los filtros generales."
-          />
-        </CardBody>
-      </Card>
-    );
-  }
 
   return (
     <Card>
@@ -102,7 +92,9 @@ export function PanelSeleccionComparativo() {
             etiqueta={tipo === 'candidato' ? 'Candidato 1' : 'Partido 1'}
             color={COLOR_A}
             tipo={tipo}
-            codigoCorporacion={codigoCorporacion}
+            corp={corpA}
+            otherCorp={corpB}
+            onChangeCorp={setCorpA}
             value={selA}
             otherValue={selB}
             onChange={setSelA}
@@ -111,14 +103,67 @@ export function PanelSeleccionComparativo() {
             etiqueta={tipo === 'candidato' ? 'Candidato 2' : 'Partido 2'}
             color={COLOR_B}
             tipo={tipo}
-            codigoCorporacion={codigoCorporacion}
+            corp={corpB}
+            otherCorp={corpA}
+            onChangeCorp={setCorpB}
             value={selB}
             otherValue={selA}
             onChange={setSelB}
           />
         </div>
+
+        <AmbitoTerritorial />
       </CardBody>
     </Card>
+  );
+}
+
+/**
+ * Ámbito territorial compartido por el comparativo. Define la granularidad del
+ * desglose (departamento → municipio → puesto). Vive en el store global porque
+ * los mapas lo usan para el drill-down por clic; aquí sólo exponemos los
+ * selectores para centralizar todos los filtros en este panel.
+ */
+function AmbitoTerritorial() {
+  const codigoDepartamento = useFiltrosGlobales((s) => s.codigoDepartamento);
+  const codigoMunicipio = useFiltrosGlobales((s) => s.codigoMunicipio);
+  const setDepartamento = useFiltrosGlobales((s) => s.setDepartamento);
+  const setMunicipio = useFiltrosGlobales((s) => s.setMunicipio);
+
+  const { data: departamentos, isLoading: loadingDep } = useDepartamentos();
+  const { data: municipios, isLoading: loadingMun } = useMunicipios(codigoDepartamento);
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-elevated/40 p-4">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground-muted">
+        <MapPin size={12} />
+        Ámbito territorial
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <SelectFiltro
+          label="Departamento"
+          value={codigoDepartamento}
+          loading={loadingDep}
+          options={(departamentos ?? []).map((d) => ({
+            value: d.codigo,
+            label: d.nombre,
+          }))}
+          onChange={setDepartamento}
+        />
+        <SelectFiltro
+          label="Municipio"
+          value={codigoMunicipio}
+          loading={loadingMun}
+          disabled={!codigoDepartamento}
+          placeholder={codigoDepartamento ? 'Todos' : 'Seleccione departamento'}
+          options={(municipios ?? []).map((m) => ({
+            value: m.codigo,
+            label: m.nombre,
+          }))}
+          onChange={setMunicipio}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -154,7 +199,11 @@ interface TarjetaSelectorProps {
   etiqueta: string;
   color: typeof COLOR_A;
   tipo: TipoComparacionTerritorial;
-  codigoCorporacion: string;
+  /** Corporación seleccionada para este lado. */
+  corp: string | null;
+  /** Corporación del otro lado (para excluir el mismo ítem sólo si coinciden). */
+  otherCorp: string | null;
+  onChangeCorp: (codigo: string | null) => void;
   value: SeleccionComparativo | null;
   otherValue: SeleccionComparativo | null;
   onChange: (sel: SeleccionComparativo | null) => void;
@@ -164,17 +213,20 @@ function TarjetaSelector({
   etiqueta,
   color,
   tipo,
-  codigoCorporacion,
+  corp,
+  otherCorp,
+  onChangeCorp,
   value,
   otherValue,
   onChange,
 }: TarjetaSelectorProps) {
+  const { data: corporaciones, isLoading: loadingCorp } = useCorporaciones();
   const { data: partidos, isLoading: loadingPart } = usePartidos(
-    tipo === 'partido' ? codigoCorporacion : null,
+    tipo === 'partido' ? corp : null,
   );
   const { data: candidatos, isLoading: loadingCand } = useCandidatos(
-    tipo === 'candidato'
-      ? { codigoCorporacion, limite: 500 }
+    tipo === 'candidato' && corp
+      ? { codigoCorporacion: corp, limite: 500 }
       : { codigoCorporacion: null, limite: 0 },
   );
 
@@ -194,12 +246,16 @@ function TarjetaSelector({
           label: c.nombre,
         }));
 
-  // Excluir la selección del otro lado para no permitir A == B.
-  const valueOther = otherValue
-    ? tipo === 'candidato'
-      ? encodeCandidato(otherValue.codigo, otherValue.codigoPartido)
-      : otherValue.codigo
-    : null;
+  // Excluir la selección del otro lado SÓLO cuando ambos lados comparten
+  // corporación: con corporaciones distintas, el mismo ítem es una comparación
+  // válida (mismo candidato/partido en dos procesos).
+  const mismaCorp = !!corp && corp === otherCorp;
+  const valueOther =
+    mismaCorp && otherValue
+      ? tipo === 'candidato'
+        ? encodeCandidato(otherValue.codigo, otherValue.codigoPartido)
+        : otherValue.codigo
+      : null;
   const opcionesFiltradas = opciones.filter(
     (o) => !valueOther || o.value !== valueOther,
   );
@@ -216,30 +272,44 @@ function TarjetaSelector({
       return;
     }
     if (tipo === 'partido') {
+      // Defensa: dentro de la misma corporación no permitir A == B.
+      if (mismaCorp && otherValue && otherValue.codigo === v) return;
       onChange({ codigo: v, codigoPartido: null });
     } else {
       const sel = decodeCandidato(v);
-      // Defensa: si el otro lado seleccionó exactamente este ítem, no aplicar.
-      if (mismaSeleccion(sel, otherValue)) return;
+      // Defensa: dentro de la misma corporación no permitir el mismo candidato.
+      if (mismaCorp && mismaSeleccion(sel, otherValue)) return;
       onChange(sel);
     }
   };
 
-  const loading = tipo === 'partido' ? loadingPart : loadingCand;
+  const loadingItem = tipo === 'partido' ? loadingPart : loadingCand;
 
   return (
     <div className={cn('rounded-xl border bg-surface p-4', color.border, color.bg)}>
       <div className={cn('text-[11px] font-semibold uppercase tracking-wider', color.text)}>
         {etiqueta}
       </div>
-      <div className="mt-3">
+      <div className="mt-3 space-y-3">
+        <SelectFiltro
+          label="Corporación"
+          value={corp}
+          loading={loadingCorp}
+          options={(corporaciones ?? []).map((c) => ({
+            value: c.codigo,
+            label: c.nombre,
+          }))}
+          onChange={onChangeCorp}
+          placeholder="Seleccione…"
+        />
         <SelectFiltro
           label={tipo === 'candidato' ? 'Candidato' : 'Partido'}
           value={valueEncoded}
-          loading={loading}
+          loading={loadingItem}
+          disabled={!corp}
           options={opcionesFiltradas}
           onChange={handleChange}
-          placeholder="Seleccione…"
+          placeholder={corp ? 'Seleccione…' : 'Seleccione corporación'}
         />
       </div>
     </div>

@@ -52,8 +52,8 @@ export function TablaResultadosTerritorial({
                   {resultado.itemB.nombre}
                 </span>
               </th>
-              <th className="hidden px-3 py-2.5 text-right md:table-cell">Total elección</th>
-              <th className="px-3 py-2.5 text-right">Diferencia</th>
+              <th className="hidden px-3 py-2.5 text-right md:table-cell">Diferencia</th>
+              <th className="px-3 py-2.5 text-right">Ventaja</th>
               <th className="hidden px-4 py-2.5 sm:table-cell">Ganador</th>
             </tr>
           </thead>
@@ -168,35 +168,54 @@ function FilaTerritorio({ t }: { t: TerritorioComparativo }) {
           {t.nombre}
         </span>
       </td>
-      <td
-        className={cn(
-          'px-3 py-2.5 text-right num-tabular',
-          t.ganador === 'A' ? cn('font-semibold', COLOR_A.text) : 'text-foreground-muted',
-        )}
-      >
-        {fmt.format(t.totalA)}
-      </td>
-      <td
-        className={cn(
-          'px-3 py-2.5 text-right num-tabular',
-          t.ganador === 'B' ? cn('font-semibold', COLOR_B.text) : 'text-foreground-muted',
-        )}
-      >
-        {fmt.format(t.totalB)}
-      </td>
-      <td className="hidden px-3 py-2.5 text-right text-foreground-muted num-tabular md:table-cell">
-        {fmt.format(t.totalEleccion)}
+      <CeldaCandidato
+        votos={t.totalA}
+        participacionPct={t.participacionAPct}
+        ganador={t.ganador === 'A'}
+        color={COLOR_A}
+      />
+      <CeldaCandidato
+        votos={t.totalB}
+        participacionPct={t.participacionBPct}
+        ganador={t.ganador === 'B'}
+        color={COLOR_B}
+      />
+      <td className="hidden px-3 py-2.5 text-right text-foreground num-tabular md:table-cell">
+        {fmt.format(t.diferencia)}
       </td>
       <td className="px-3 py-2.5 text-right text-foreground num-tabular">
-        {fmt.format(t.diferencia)}
-        <span className="ml-1 text-[10px] text-foreground-subtle">
-          ({t.diferenciaPct.toFixed(1)}%)
-        </span>
+        {t.diferenciaPct.toFixed(1)}%
       </td>
       <td className="hidden px-4 py-2.5 sm:table-cell">
         <EtiquetaGanador ganador={t.ganador} />
       </td>
     </tr>
+  );
+}
+
+function CeldaCandidato({
+  votos,
+  participacionPct,
+  ganador,
+  color,
+}: {
+  votos: number;
+  participacionPct: number;
+  ganador: boolean;
+  color: typeof COLOR_A;
+}) {
+  return (
+    <td
+      className={cn(
+        'px-3 py-2.5 text-right num-tabular',
+        ganador ? cn('font-semibold', color.text) : 'text-foreground-muted',
+      )}
+    >
+      {fmt.format(votos)}
+      <span className="ml-1 text-[10px] text-foreground-subtle">
+        ({participacionPct.toFixed(1)}%)
+      </span>
+    </td>
   );
 }
 

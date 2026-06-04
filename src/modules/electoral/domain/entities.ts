@@ -70,7 +70,13 @@ export interface FiltroComparativoTerritorial {
   tipo: TipoComparacionTerritorial;
   codigoA: string;
   codigoB: string;
-  codigoCorporacion: string;
+  /** Corporación del ítem A. */
+  codigoCorporacionA: string;
+  /**
+   * Corporación del ítem B. Puede diferir de la de A para comparar candidatos
+   * o partidos entre corporaciones/elecciones distintas.
+   */
+  codigoCorporacionB: string;
   codigoDepartamento: string | null;
   codigoMunicipio: string | null;
   /**
@@ -88,8 +94,13 @@ export interface ItemComparativoTerritorial {
   nombre: string;
   nombrePartido: string | null;
   codigoPartido: string | null;
+  /** Corporación del lado del comparativo. */
+  codigoCorporacion: string;
   totalVotos: number;
+  /** Total de votos de la elección de su corporación en el ámbito filtrado. */
+  totalEleccion: number;
   totalTerritorios: number;
+  /** % del ítem sobre el total de la elección de su corporación. */
   participacionPct: number;
 }
 
@@ -100,17 +111,21 @@ export interface TerritorioComparativo {
   nombre: string;
   totalA: number;
   totalB: number;
-  totalEleccion: number;
   ganador: GanadorComparativo;
+  /** |totalA - totalB| en votos absolutos. */
   diferencia: number;
+  /** Ventaja porcentual del ganador sobre el par A + B (0–100). */
   diferenciaPct: number;
+  /** % de los votos del par que corresponden a A (0–100). */
+  participacionAPct: number;
+  /** % de los votos del par que corresponden a B (0–100). */
+  participacionBPct: number;
 }
 
 export interface ComparativoTerritorialResultado {
   nivel: NivelTerritorial;
   itemA: ItemComparativoTerritorial;
   itemB: ItemComparativoTerritorial;
-  totalEleccion: number;
   territorios: TerritorioComparativo[];
 }
 

@@ -16,14 +16,20 @@ export interface SeleccionComparativo {
 
 /**
  * Estado del comparativo electoral pairwise (item A vs item B).
- * La geografía y la corporación viven en el store global de filtros — aquí
- * sólo guardamos lo específico del comparativo: tipo y los dos lados.
+ * La geografía vive en el store global de filtros (la usan los mapas para el
+ * drill-down). Aquí guardamos lo específico del comparativo: el tipo, la
+ * **corporación de cada lado** (pueden diferir para comparar entre
+ * corporaciones/elecciones distintas) y los dos ítems seleccionados.
  */
 interface ComparativoStore {
   tipo: TipoComparacionTerritorial;
+  corpA: string | null;
+  corpB: string | null;
   selA: SeleccionComparativo | null;
   selB: SeleccionComparativo | null;
   setTipo: (tipo: TipoComparacionTerritorial) => void;
+  setCorpA: (codigo: string | null) => void;
+  setCorpB: (codigo: string | null) => void;
   setSelA: (sel: SeleccionComparativo | null) => void;
   setSelB: (sel: SeleccionComparativo | null) => void;
   swap: () => void;
@@ -32,15 +38,24 @@ interface ComparativoStore {
 
 export const useFiltrosComparativo = create<ComparativoStore>((set) => ({
   tipo: 'candidato',
+  corpA: null,
+  corpB: null,
   selA: null,
   selB: null,
-  // Cambiar tipo limpia las selecciones: A/B son específicas a partido o candidato.
+  // Cambiar tipo limpia las selecciones: A/B son específicas a partido o
+  // candidato. Las corporaciones se conservan (aplican a ambos tipos).
   setTipo: (tipo) => set({ tipo, selA: null, selB: null }),
+  // Cambiar la corporación de un lado invalida la selección de ESE lado: la
+  // lista de partidos/candidatos depende de la corporación.
+  setCorpA: (codigo) => set({ corpA: codigo, selA: null }),
+  setCorpB: (codigo) => set({ corpB: codigo, selB: null }),
   setSelA: (sel) => set({ selA: sel }),
   setSelB: (sel) => set({ selB: sel }),
+  // El swap intercambia corporación + ítem de cada lado para mantener la
+  // coherencia (corpA↔corpB, selA↔selB).
   swap: () =>
-    set((s) => ({ selA: s.selB, selB: s.selA })),
-  reset: () => set({ tipo: 'candidato', selA: null, selB: null }),
+    set((s) => ({ corpA: s.corpB, corpB: s.corpA, selA: s.selB, selB: s.selA })),
+  reset: () => set({ tipo: 'candidato', corpA: null, corpB: null, selA: null, selB: null }),
 }));
 
 /**

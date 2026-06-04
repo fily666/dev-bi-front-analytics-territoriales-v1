@@ -1,11 +1,13 @@
 'use client';
 
+import { useCorporaciones } from '@/modules/catalogos/application/hooks';
 import type {
   ComparativoTerritorialResultado,
   ItemComparativoTerritorial,
 } from '@/modules/electoral/domain/entities';
 import { Card, CardBody } from '@/shared/ui/components/card';
 import { cn } from '@/shared/ui/utils/cn';
+import { useMemo } from 'react';
 import { COLOR_A, COLOR_B } from './colores-comparativo';
 
 const fmt = new Intl.NumberFormat('es-CO');
@@ -17,20 +19,27 @@ export interface TarjetasTotalesProps {
 }
 
 export function TarjetasTotales({ resultado, etiquetaTerritorios }: TarjetasTotalesProps) {
+  const { data: corporaciones } = useCorporaciones();
+  const nombrePorCodigo = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of corporaciones ?? []) m.set(c.codigo, c.nombre);
+    return m;
+  }, [corporaciones]);
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <TarjetaItem
         item={resultado.itemA}
         color={COLOR_A}
         rotulo="Ítem A"
-        totalEleccion={resultado.totalEleccion}
+        nombreCorporacion={nombrePorCodigo.get(resultado.itemA.codigoCorporacion)}
         etiquetaTerritorios={etiquetaTerritorios}
       />
       <TarjetaItem
         item={resultado.itemB}
         color={COLOR_B}
         rotulo="Ítem B"
-        totalEleccion={resultado.totalEleccion}
+        nombreCorporacion={nombrePorCodigo.get(resultado.itemB.codigoCorporacion)}
         etiquetaTerritorios={etiquetaTerritorios}
       />
     </div>
@@ -41,13 +50,13 @@ function TarjetaItem({
   item,
   color,
   rotulo,
-  totalEleccion,
+  nombreCorporacion,
   etiquetaTerritorios,
 }: {
   item: ItemComparativoTerritorial;
   color: typeof COLOR_A;
   rotulo: string;
-  totalEleccion: number;
+  nombreCorporacion?: string;
   etiquetaTerritorios: string;
 }) {
   return (
@@ -65,6 +74,11 @@ function TarjetaItem({
               {item.nombrePartido}
             </div>
           )}
+          {nombreCorporacion && (
+            <div className="mt-1 inline-flex rounded-full border border-border bg-surface-elevated px-2 py-0.5 text-[10px] font-medium text-foreground-muted">
+              {nombreCorporacion}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -75,7 +89,7 @@ function TarjetaItem({
             acentoColor={color.text}
           />
           <Kpi etiqueta={etiquetaTerritorios} valor={fmt.format(item.totalTerritorios)} />
-          <Kpi etiqueta="Total elección" valor={`${fmt.format(totalEleccion)} votos`} chico />
+          <Kpi etiqueta="Total elección" valor={`${fmt.format(item.totalEleccion)} votos`} chico />
         </div>
       </CardBody>
     </Card>

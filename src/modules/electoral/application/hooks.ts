@@ -148,31 +148,40 @@ export function useCompararTerritorial(
 ) {
   // Para candidato la identidad real es (codigo, codigoPartido). Sin partido
   // no podemos desambiguar candidatos homónimos en partidos distintos, así
-  // que la query queda deshabilitada hasta que llegue.
+  // que la query queda deshabilitada hasta que llegue. Cada lado lleva su
+  // propia corporación; cuando difieren, incluso un mismo código/partido es
+  // una comparación válida (mismo candidato en dos procesos).
   const esCandidato = filtro.tipo === 'candidato';
   const ladoValido = (codigo?: string, partido?: string | null): boolean =>
     !!codigo && (!esCandidato || !!partido);
-  const distintos = esCandidato
-    ? filtro.codigoA !== filtro.codigoB ||
-      filtro.codigoPartidoA !== filtro.codigoPartidoB
-    : filtro.codigoA !== filtro.codigoB;
+  const distintaCorporacion = filtro.codigoCorporacionA !== filtro.codigoCorporacionB;
+  const distintos =
+    distintaCorporacion ||
+    (esCandidato
+      ? filtro.codigoA !== filtro.codigoB ||
+        filtro.codigoPartidoA !== filtro.codigoPartidoB
+      : filtro.codigoA !== filtro.codigoB);
 
   const enabled = !!(
     filtro.tipo &&
-    filtro.codigoCorporacion &&
+    filtro.codigoCorporacionA &&
+    filtro.codigoCorporacionB &&
     ladoValido(filtro.codigoA, filtro.codigoPartidoA) &&
     ladoValido(filtro.codigoB, filtro.codigoPartidoB) &&
     distintos
   );
 
-  // Clave estable A/B (incluye partido para candidatos) — A vs B y B vs A
-  // comparten caché.
-  const ladoKey = (codigo?: string, partido?: string | null): string =>
-    `${codigo ?? ''}#${esCandidato ? partido ?? '' : ''}`;
+  // Clave estable A/B (incluye corporación y, para candidatos, partido) — A vs
+  // B y B vs A comparten caché.
+  const ladoKey = (
+    corp?: string,
+    codigo?: string,
+    partido?: string | null,
+  ): string => `${corp ?? ''}@${codigo ?? ''}#${esCandidato ? partido ?? '' : ''}`;
   const parKey = enabled
     ? [
-        ladoKey(filtro.codigoA, filtro.codigoPartidoA),
-        ladoKey(filtro.codigoB, filtro.codigoPartidoB),
+        ladoKey(filtro.codigoCorporacionA, filtro.codigoA, filtro.codigoPartidoA),
+        ladoKey(filtro.codigoCorporacionB, filtro.codigoB, filtro.codigoPartidoB),
       ]
         .sort()
         .join('|')
@@ -183,10 +192,11 @@ export function useCompararTerritorial(
       'comparativo',
       'territorial',
       filtro.tipo,
-      filtro.codigoCorporacion,
       parKey,
       // Mantenemos la dirección original (A vs B) en la queryKey para diferenciar
       // qué item es A y cuál B en la respuesta.
+      filtro.codigoCorporacionA,
+      filtro.codigoCorporacionB,
       filtro.codigoA,
       filtro.codigoB,
       filtro.codigoPartidoA ?? null,
