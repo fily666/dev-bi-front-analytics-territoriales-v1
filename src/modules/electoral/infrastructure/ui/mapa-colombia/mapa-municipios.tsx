@@ -5,7 +5,11 @@ import { useCallback, useMemo } from 'react';
 import { useVotosPorMunicipio } from '../../../application/hooks';
 import { useFiltrosGlobales } from '@/shared/application/stores/filtros-globales.store';
 import { useGeoJSON } from '@/shared/application/hooks/use-geojson';
-import { aDivipolaDepto, normalizarNombre } from '@/shared/domain/divipola';
+import {
+  aDivipolaDepto,
+  claveMunicipioDivipola,
+  normalizarNombre,
+} from '@/shared/domain/divipola';
 import { Skeleton } from '@/shared/ui/components/skeleton';
 
 const MapaBaseInner = dynamic(
@@ -65,7 +69,7 @@ export function MapaMunicipios() {
     const m = new Map<string, number>();
     for (const v of data) {
       const ccnct = geoIndex.porNombre.get(
-        `${codigoDepartamentoDivipola}|${normalizarNombre(v.nombreMunicipio)}`,
+        claveMunicipioDivipola(codigoDepartamentoDivipola, v.nombreMunicipio),
       );
       if (ccnct) m.set(ccnct, v.totalVotos);
     }
@@ -78,7 +82,7 @@ export function MapaMunicipios() {
     if (!muni) return null;
     return (
       geoIndex.porNombre.get(
-        `${codigoDepartamentoDivipola}|${normalizarNombre(muni.nombreMunicipio)}`,
+        claveMunicipioDivipola(codigoDepartamentoDivipola, muni.nombreMunicipio),
       ) ?? null
     );
   }, [codigoSeleccionadoBd, data, geoIndex, codigoDepartamentoDivipola]);
@@ -93,16 +97,22 @@ export function MapaMunicipios() {
 
   const onSeleccion = useCallback(
     (ccnctDivipola: string) => {
-      if (!data || !geoIndex) return;
+      if (!data || !geoIndex || !codigoDepartamentoDivipola) return;
       const nombreNormalizado = geoIndex.porCcnct.get(ccnctDivipola);
       if (!nombreNormalizado) return;
+      // Reverso simétrico a la ida: comparamos la clave con alias aplicado para
+      // que un click en un polígono con nombre DANE distinto (ej. Cúcuta →
+      // "SAN JOSE DE CUCUTA") encuentre su municipio en la respuesta de la BD.
+      const claveGeo = `${codigoDepartamentoDivipola}|${nombreNormalizado}`;
       const muni = data.find(
-        (m) => normalizarNombre(m.nombreMunicipio) === nombreNormalizado,
+        (m) =>
+          claveMunicipioDivipola(codigoDepartamentoDivipola, m.nombreMunicipio) ===
+          claveGeo,
       );
       if (!muni) return;
       setMunicipio(muni.codigoMunicipio === codigoSeleccionadoBd ? null : muni.codigoMunicipio);
     },
-    [data, geoIndex, codigoSeleccionadoBd, setMunicipio],
+    [data, geoIndex, codigoDepartamentoDivipola, codigoSeleccionadoBd, setMunicipio],
   );
 
   if (!codigoDepartamentoBd) {

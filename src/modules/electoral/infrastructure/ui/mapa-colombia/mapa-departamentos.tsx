@@ -4,7 +4,11 @@ import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { useVotosPorDepartamento } from '../../../application/hooks';
 import { useFiltrosGlobales } from '@/shared/application/stores/filtros-globales.store';
-import { aRegistraduriaDepto, aDivipolaDepto } from '@/shared/domain/divipola';
+import {
+  aRegistraduriaDepto,
+  aDivipolaDepto,
+  esDepartamentoExteriorBd,
+} from '@/shared/domain/divipola';
 import { Skeleton } from '@/shared/ui/components/skeleton';
 
 const MapaBaseInner = dynamic(
@@ -23,6 +27,9 @@ export function MapaDepartamentos() {
     () =>
       new Map(
         (data ?? []).flatMap((v) => {
+          // El voto exterior (dept BD '88' = CONSULADOS) colisiona con San Andrés
+          // en DIVIPOLA 88; lo excluimos del choropleth para no fundirlos.
+          if (esDepartamentoExteriorBd(v.codigoDepartamento)) return [];
           const divipola = aDivipolaDepto(v.codigoDepartamento);
           return divipola ? [[divipola, v.totalVotos] as const] : [];
         }),
