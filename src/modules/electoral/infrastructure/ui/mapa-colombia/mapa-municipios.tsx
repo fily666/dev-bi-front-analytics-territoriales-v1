@@ -11,6 +11,7 @@ import {
   normalizarNombre,
 } from '@/shared/domain/divipola';
 import { Skeleton } from '@/shared/ui/components/skeleton';
+import { LeyendaCalor } from './leyenda-calor';
 
 const MapaBaseInner = dynamic(
   () => import('./mapa-base.inner').then((m) => m.MapaBaseInner),
@@ -142,14 +143,18 @@ export function MapaMunicipios() {
   }
 
   return (
-    <MapaBaseInner
-      geoJsonUrl={GEO_MUNI_URL}
-      propiedadCodigo="MPIO_CCNCT"
-      propiedadNombre="MPIO_CNMBR"
-      valoresPorCodigo={valoresPorCodigo}
-      onSeleccion={onSeleccion}
-      codigoSeleccionado={codigoSeleccionadoDivipola}
-      filtroFeature={filtroFeature}
-    />
+    <>
+      <MapaBaseInner
+        geoJsonUrl={GEO_MUNI_URL}
+        propiedadCodigo="MPIO_CCNCT"
+        propiedadNombre="MPIO_CNMBR"
+        valoresPorCodigo={valoresPorCodigo}
+        escalaColor="percentil"
+        onSeleccion={onSeleccion}
+        codigoSeleccionado={codigoSeleccionadoDivipola}
+        filtroFeature={filtroFeature}
+      />
+      <LeyendaCalor valores={valoresPorCodigo} etiqueta="Votos" />
+    </>
   );
 }

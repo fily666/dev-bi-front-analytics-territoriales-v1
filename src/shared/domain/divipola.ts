@@ -178,11 +178,13 @@ export function esDepartamentoExteriorBd(codigo: string | null | undefined): boo
  * Clave: `${codigoDeptoDIVIPOLA}|${normalizarNombre(nombreMunicipioBd)}`.
  * Valor: nombre DANE normalizado (el que existe en `colombia-municipios.geojson`).
  *
- * Cubre las 78 divergencias reales donde el nombre de la Registraduría no coincide
+ * Cubre las divergencias reales donde el nombre de la Registraduría no coincide
  * con el del DANE (nombre oficial completo, alias histórico entre paréntesis,
  * ortografía/espaciado o artículo inicial faltante). Generado 2026-07-02 cruzando
- * `dim_divipole` contra el GeoJSON: las 78 resuelven a polígonos reales y distintos
- * (0 colisiones), llevando la cobertura municipal a 1122/1122.
+ * `dim_divipole` contra el GeoJSON: resuelven a polígonos reales y distintos
+ * (0 colisiones), llevando la cobertura municipal a 1122/1122. Incluye la
+ * grafía duplicada `BARRANCO MINAS` que el `MAX(nombre_municipio)` del endpoint
+ * puede devolver además de `BARRANCOMINAS`.
  */
 export const MUNICIPIO_ALIAS_REGISTRADURIA: Readonly<Record<string, string>> = {
   '05|ANTIOQUIA': 'SANTA FE DE ANTIOQUIA', // ANTIOQUIA -> SANTA FÉ DE ANTIOQUIA [05042]
@@ -261,6 +263,7 @@ export const MUNICIPIO_ALIAS_REGISTRADURIA: Readonly<Record<string, string>> = {
   '86|VALLE DEL GUAMUEZ (LA HORMIGA)': 'VALLE DEL GUAMUEZ', // VALLE DEL GUAMUEZ (LA HORMIGA) -> VALLE DEL GUAMUEZ [86865]
   '94|MORICHAL (MORICHAL NUEVO)': 'MORICHAL', // MORICHAL (MORICHAL NUEVO) -> MORICHAL [94888]
   '94|PANA PANA (CAMPO ALEGRE)': 'PANA PANA', // PANA PANA (CAMPO ALEGRE) -> PANA PANA [94887]
+  '94|BARRANCO MINAS': 'BARRANCOMINAS', // BARRANCO MINAS -> BARRANCOMINAS [94343] (grafía duplicada en dim_divipole; el MAX(nombre_municipio) del endpoint puede devolver esta variante con espacio)
   '97|BUENOS AIRES (PACOA)': 'PACOA', // BUENOS AIRES (PACOA) -> PACOA [97511]
   '97|MORICHAL (PAPUNAGUA)': 'PAPUNAHUA', // MORICHAL (PAPUNAGUA) -> PAPUNAHUA [97777]
 };
